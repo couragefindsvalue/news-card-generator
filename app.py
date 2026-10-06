@@ -11,6 +11,7 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 from collections import Counter
+import tempfile  # ★★★ 新增：用于跨平台临时目录
 
 try:
     import jieba.analyse
@@ -21,28 +22,39 @@ except ImportError:
 
 app = Flask(__name__)
 
-# ================= 字体配置区（大幅扩充） =================
+# ★★★ 核心：自动识别本地和 Render 的临时目录 ★★★
+TEMP_DIR = tempfile.gettempdir()
+
+# ================= 字体配置区 =================
 FONT_FAMILIES = {
-    # --- 无衬线体 (Sans-Serif) ---
-    "Arial 常规 (Arial)": ["arial.ttf", "C:/Windows/Fonts/arial.ttf", "/Library/Fonts/Arial.ttf"],
-    "Arial 粗体 (Arial Bold)": ["arialbd.ttf", "C:/Windows/Fonts/arialbd.ttf",
-                                "/System/Library/Fonts/Supplemental/Arial Bold.ttf"],
-    "Arial 黑体 (Arial Black)": ["ariblk.ttf", "C:/Windows/Fonts/ariblk.ttf",
-                                 "/System/Library/Fonts/Supplemental/Arial Black.ttf"],
-    "Impact 粗体": ["impact.ttf", "C:/Windows/Fonts/impact.ttf", "/System/Library/Fonts/Supplemental/Impact.ttf"],
+    "Arial 常规 (Arial)": [
+        "arial.ttf", "C:/Windows/Fonts/arial.ttf", "/Library/Fonts/Arial.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    ],
+    "Arial 粗体 (Arial Bold)": [
+        "arialbd.ttf", "C:/Windows/Fonts/arialbd.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    ],
+    "Arial 黑体 (Arial Black)": [
+        "ariblk.ttf", "C:/Windows/Fonts/ariblk.ttf", "/System/Library/Fonts/Supplemental/Arial Black.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    ],
+    "Impact 粗体": [
+        "impact.ttf", "C:/Windows/Fonts/impact.ttf", "/System/Library/Fonts/Supplemental/Impact.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    ],
     "微软雅黑常规 (Microsoft YaHei)": ["msyh.ttc", "C:/Windows/Fonts/msyh.ttc"],
     "微软雅黑粗体 (Microsoft YaHei Bold)": ["msyhbd.ttc", "C:/Windows/Fonts/msyhbd.ttc"],
     "黑体 (SimHei)": ["simhei.ttf", "C:/Windows/Fonts/simhei.ttf"],
     "苹方常规 (PingFang)": ["/System/Library/Fonts/PingFang.ttc"],
+    "Noto Sans CJK 粗体": ["/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"],
 
-    # --- 衬线体 (Serif) ---
     "Times New Roman 常规": ["times.ttf", "C:/Windows/Fonts/times.ttf", "/Library/Fonts/Times New Roman.ttf"],
     "Times New Roman 粗体": ["timesbd.ttf", "C:/Windows/Fonts/timesbd.ttf", "/Library/Fonts/Times New Roman Bold.ttf"],
     "Georgia": ["georgia.ttf", "C:/Windows/Fonts/georgia.ttf", "/Library/Fonts/Georgia.ttf"],
     "宋体 (SimSun)": ["simsun.ttc", "C:/Windows/Fonts/simsun.ttc"],
     "楷体 (KaiTi)": ["simkai.ttf", "C:/Windows/Fonts/simkai.ttf"],
 
-    # --- 艺术与手写体 (Artistic) ---
     "Comic Sans MS": ["comic.ttf", "C:/Windows/Fonts/comic.ttf", "/Library/Fonts/Comic Sans MS.ttf"],
     "Courier New": ["cour.ttf", "C:/Windows/Fonts/cour.ttf", "/Library/Fonts/Courier New.ttf"],
     "Verdana": ["verdana.ttf", "C:/Windows/Fonts/verdana.ttf", "/Library/Fonts/Verdana.ttf"],
@@ -56,15 +68,17 @@ def contains_chinese(text):
 
 def get_font_path(font_name, text_content=""):
     if contains_chinese(text_content):
-        for cn_font in ["微软雅黑粗体 (Microsoft YaHei Bold)", "苹方 (PingFang)", "黑体 (SimHei)"]:
+        for cn_font in ["Noto Sans CJK 粗体", "微软雅黑粗体 (Microsoft YaHei Bold)", "苹方 (PingFang)",
+                        "黑体 (SimHei)"]:
             if cn_font in FONT_FAMILIES:
                 for path in FONT_FAMILIES[cn_font]:
                     if os.path.exists(path): return path
+
     if font_name in FONT_FAMILIES:
         for path in FONT_FAMILIES[font_name]:
             if os.path.exists(path): return path
-    # 兜底逻辑
-    for fallback in ["Arial 粗体 (Arial Bold)", "微软雅黑粗体 (Microsoft YaHei Bold)"]:
+
+    for fallback in ["Arial 粗体 (Arial Bold)", "微软雅黑粗体 (Microsoft YaHei Bold)", "Noto Sans CJK 粗体"]:
         if fallback in FONT_FAMILIES:
             for path in FONT_FAMILIES[fallback]:
                 if os.path.exists(path): return path
@@ -74,6 +88,20 @@ def get_font_path(font_name, text_content=""):
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+
+
+# ★★★ 新增：图片预处理函数（强制限制尺寸，节省内存） ★★★
+def resize_image_if_needed(image_file, max_dim=1080):
+    try:
+        img = Image.open(image_file)
+        if max(img.size) > max_dim:
+            scale = max_dim / max(img.size)
+            new_size = (int(img.width * scale), int(img.height * scale))
+            img = img.resize(new_size, Image.Resampling.LANCZOS)
+        return img
+    except Exception as e:
+        print(f"图片缩放出错: {e}")
+        return None
 
 
 # ================= 文本分析：自动提取关键词 =================
@@ -247,13 +275,22 @@ def generate_image(main_img_file, avatar1_file, avatar2_file, text_mid, text_bot
                    cta_text, cta_font_size, cta_text_color, cta_bg_color, cta_x, cta_y, cta_font_name,
                    cta_radius, cta_shadow, gradient_height_ratio, gradient_end_y_ratio, gradient_start_color,
                    gradient_end_color):
+    # ★★★ 优化：单次读取主图 + 强制缩放 ★★★
     try:
-        img = Image.open(main_img_file)
-        original_w, original_h = img.size
-        img.seek(0)
+        img = resize_image_if_needed(main_img_file, max_dim=1080)  # 限制主图长边 1080px
+        if not img:
+            raise ValueError("图片处理失败")
+
+        if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+            bg = Image.new("RGB", img.size, (0, 0, 0))
+            bg.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+            img = bg
+        else:
+            img = img.convert("RGB")
     except Exception as e:
-        original_w, original_h = 1080, 1350
-        print(f"读取原图尺寸失败: {e}")
+        raise ValueError(f"无法处理主图片: {e}")
+
+    original_w, original_h = img.size
 
     if canvas_ratio == 'original':
         W, H = original_w, original_h
@@ -274,17 +311,6 @@ def generate_image(main_img_file, avatar1_file, avatar2_file, text_mid, text_bot
         top_h = int(H * gradient_end_y_ratio)
 
     bottom_h = H - top_h
-
-    try:
-        img = Image.open(main_img_file)
-        if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
-            bg = Image.new("RGB", img.size, (0, 0, 0))
-            bg.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-            img = bg
-        else:
-            img = img.convert("RGB")
-    except Exception as e:
-        raise ValueError(f"无法处理主图片: {e}")
 
     if blur_radius > 0: img = img.filter(ImageFilter.GaussianBlur(radius=blur_radius))
     w, h = img.size
@@ -323,31 +349,34 @@ def generate_image(main_img_file, avatar1_file, avatar2_file, text_mid, text_bot
 
         canvas.paste(gradient_color_img, (0, top_h - gradient_h), gradient_mask)
 
+    # ★★★ 优化：头像处理（强制缩放）+ 使用 TEMP_DIR ★★★
     if avatar1_file and avatar1_file.filename:
-        temp_path1 = os.path.join("uploads", "temp_avatar1.jpg")
-        os.makedirs("uploads", exist_ok=True)
-        avatar1_file.save(temp_path1)
-        if auto_face_detect:
-            offset_x, offset_y, zoom = auto_detect_face_offset(temp_path1, avatar1_size)
-            av1 = make_circular_avatar(temp_path1, avatar1_size, avatar_border_width, avatar_border_color, offset_x,
-                                       offset_y, zoom)
-        else:
-            av1 = make_circular_avatar(temp_path1, avatar1_size, avatar_border_width, avatar_border_color,
-                                       avatar1_offset_x, avatar1_offset_y, avatar1_zoom)
-        if av1: canvas.paste(av1, (avatar1_x, avatar1_y), av1)
+        avatar1_img = resize_image_if_needed(avatar1_file, max_dim=600)  # 限制头像长边 600px
+        if avatar1_img:
+            temp_path1 = os.path.join(TEMP_DIR, "temp_avatar1.jpg")
+            avatar1_img.save(temp_path1)
+            if auto_face_detect:
+                offset_x, offset_y, zoom = auto_detect_face_offset(temp_path1, avatar1_size)
+                av1 = make_circular_avatar(temp_path1, avatar1_size, avatar_border_width, avatar_border_color, offset_x,
+                                           offset_y, zoom)
+            else:
+                av1 = make_circular_avatar(temp_path1, avatar1_size, avatar_border_width, avatar_border_color,
+                                           avatar1_offset_x, avatar1_offset_y, avatar1_zoom)
+            if av1: canvas.paste(av1, (avatar1_x, avatar1_y), av1)
 
     if avatar2_file and avatar2_file.filename:
-        temp_path2 = os.path.join("uploads", "temp_avatar2.jpg")
-        os.makedirs("uploads", exist_ok=True)
-        avatar2_file.save(temp_path2)
-        if auto_face_detect:
-            offset_x, offset_y, zoom = auto_detect_face_offset(temp_path2, avatar2_size)
-            av2 = make_circular_avatar(temp_path2, avatar2_size, avatar_border_width, avatar_border_color, offset_x,
-                                       offset_y, zoom)
-        else:
-            av2 = make_circular_avatar(temp_path2, avatar2_size, avatar_border_width, avatar_border_color,
-                                       avatar2_offset_x, avatar2_offset_y, avatar2_zoom)
-        if av2: canvas.paste(av2, (avatar2_x, avatar2_y), av2)
+        avatar2_img = resize_image_if_needed(avatar2_file, max_dim=600)
+        if avatar2_img:
+            temp_path2 = os.path.join(TEMP_DIR, "temp_avatar2.jpg")
+            avatar2_img.save(temp_path2)
+            if auto_face_detect:
+                offset_x, offset_y, zoom = auto_detect_face_offset(temp_path2, avatar2_size)
+                av2 = make_circular_avatar(temp_path2, avatar2_size, avatar_border_width, avatar_border_color, offset_x,
+                                           offset_y, zoom)
+            else:
+                av2 = make_circular_avatar(temp_path2, avatar2_size, avatar_border_width, avatar_border_color,
+                                           avatar2_offset_x, avatar2_offset_y, avatar2_zoom)
+            if av2: canvas.paste(av2, (avatar2_x, avatar2_y), av2)
 
     draw = ImageDraw.Draw(canvas)
     font_mid_path = get_font_path(font_mid_name, text_mid)
@@ -603,9 +632,11 @@ def search_avatar():
         if img_response.status_code != 200:
             return jsonify({'error': 'Failed to download the image'}), 500
         img = Image.open(io.BytesIO(img_response.content)).convert("RGB")
-        temp_path = os.path.join("uploads", "temp_avatar_search.jpg")
-        os.makedirs("uploads", exist_ok=True)
+
+        # ★★★ 使用 TEMP_DIR ★★★
+        temp_path = os.path.join(TEMP_DIR, "temp_avatar_search.jpg")
         img.save(temp_path)
+
         target_size = 220
         offset_x, offset_y, zoom = auto_detect_face_offset(temp_path, target_size)
         circular_avatar = make_circular_avatar(temp_path, target_size, border_width=6, border_color="#FFD700",
@@ -712,5 +743,6 @@ def generate():
 
 
 if __name__ == '__main__':
-    os.makedirs("uploads", exist_ok=True)
+    # 确保本地运行时临时目录存在
+    os.makedirs(TEMP_DIR, exist_ok=True)
     app.run(debug=True, port=5010)
