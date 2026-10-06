@@ -1,0 +1,11 @@
+
+services:
+  - type: web
+    name: news-card-generator
+    env: docker
+    plan: free
+    region: oregon # 选择离你用户最近的区域，例如 oregon, frankfurt, singapore
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8080
