@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Card Generator</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; color: #333; display: flex; gap: 30px; min-height: 100vh; }
+        
+        .controls { flex: 1; max-width: 520px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow-y: auto; max-height: 90vh; }
+        .controls h1 { font-size: 20px; margin-top: 0; color: #2c3e50; margin-bottom: 20px; }
+        
+        /* 统一折叠卡片样式 */
+        .section-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        .section-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .section-card summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #2c3e50;
+            cursor: pointer;
+            user-select: none;
+            outline: none;
+            background: #f8f9fa;
+            transition: background 0.2s;
+            list-style: none;
+        }
+        .section-card summary::-webkit-details-marker {
+            display: none;
+        }
+        .section-card summary:hover {
+            background: #f1f3f5;
+        }
+        .section-card summary::after {
+            content: '➕';
+            font-size: 12px;
+            color: #adb5bd;
+            font-weight: normal;
+        }
+        .section-card[open] summary {
+            border-bottom: 1px solid #e0e0e0;
+            background: #fff;
+        }
+        .section-card[open] summary::after {
+            content: '➖';
+        }
+        .section-content {
+            padding: 16px;
+            background: #fff;
+        }
+
+        /* 表单元素通用样式 */
+        .form-group { margin-bottom: 14px; padding-left: 0; }
+        label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 12px; color: #555; }
+        input[type="text"], input[type="file"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; transition: border-color 0.2s; }
+        input[type="text"]:focus, select:focus { border-color: #3498db; outline: none; }
+        input[type="color"] { width: 40px; height: 32px; border: none; border-radius: 4px; cursor: pointer; vertical-align: middle; padding: 2px; }
+        input[type="range"] { width: 100%; margin: 0; }
+        
+        /* 滑块和颜色组 */
+        .slider-group { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .slider-group span { font-size: 12px; color: #666; width: 80px; text-align: right; flex-shrink: 0; }
+        .slider-group input[type="range"] { flex: 1; }
+        .color-group { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .color-group span { font-size: 12px; color: #666; width: 80px; text-align: right; flex-shrink: 0; }
+        
+        /* 子区块样式 */
+        .sub-section { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee; }
+        .sub-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+        .sub-section h4 { margin: 0 0 12px 0; font-size: 13px; color: #333; }
+
+        /* 按钮 */
+        button { width: 100%; padding: 12px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.3s; margin-top: 10px; }
+        button:hover { background: #c0392b; box-shadow: 0 2px 8px rgba(231,76,60,0.4); }
+        .btn-select-file { width: auto; padding: 0 15px; margin: 0; height: 100%; background: #555; font-size: 12px; border-radius: 8px; white-space: nowrap; }
+        .btn-select-file:hover { background: #333; }
+        .btn-add-keyword { background: #3498db; padding: 8px; font-size: 13px; margin-top: 5px; }
+
+        /* 预览区 */
+        .preview { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .preview img { max-width: 100%; max-height: 75vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .placeholder { color: #aaa; font-size: 18px; text-align: center; border: 2px dashed #ccc; padding: 50px; border-radius: 12px; }
+        
+        /* 操作按钮与历史记录 */
+        .action-buttons { display: flex; gap: 10px; margin-top: 15px; width: 100%; max-width: 400px; }
+        .action-buttons button { flex: 1; padding: 12px; font-size: 14px; margin: 0; }
+        .copy-btn { background: #2980b9; }
+        .copy-btn:hover { background: #2471a3; }
+        .download-btn { background: #27ae60; }
+        .download-btn:hover { background: #219150; }
+        
+        .history-panel { margin-top: 15px; width: 100%; max-width: 400px; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none; }
+        .history-panel h4 { margin: 0 0 10px 0; font-size: 14px; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        .history-panel h4 button { width: auto; padding: 4px 8px; font-size: 11px; background: #e74c3c; margin: 0; }
+        .history-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; }
+        .history-item { flex-shrink: 0; width: 60px; height: 60px; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; }
+        .history-item:hover { border-color: #3498db; }
+        .history-item img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* 粘贴区 */
+        .paste-wrapper { display: flex; gap: 8px; align-items: center; margin-top: 5px; }
+        .paste-area { flex: 1; border-radius: 8px; padding: 12px; text-align: center; font-size: 13px; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+        .paste-area.main-paste { border-color: #27ae60; background: #eafaf1; color: #1e8449; }
+        .paste-area.avatar1-paste { border-color: #2980b9; background: #ebf5fb; color: #2471a3; }
+        .paste-area.avatar2-paste { border-color: #8e44ad; background: #f4ecf7; color: #6c3483; }
+        .paste-area:hover { filter: brightness(0.95); }
+        .paste-area.active { border-width: 4px; box-shadow: 0 0 8px rgba(0,0,0,0.2); }
+        
+        /* 关键字 */
+        .keyword-list { margin-top: 10px; }
+        .keyword-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; background: white; padding: 8px; border-radius: 6px; border: 1px solid #eee; }
+        .keyword-item input[type="color"] { width: 35px; height: 35px; flex-shrink: 0; }
+        .keyword-item input[type="text"] { flex: 1; margin: 0; }
+        .keyword-item button { width: auto; margin: 0; padding: 6px 12px; background: #e74c3c; font-size: 12px; flex-shrink: 0; }
+        
+        /* 加载遮罩 */
+        .loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 12px 24px; border-radius: 20px; display: none; font-size: 14px; z-index: 100; }
+        .loading-overlay.active { display: block; }
+
+        /* 新闻列表 */
+        .news-list { margin-top: 10px; max-height: 300px; overflow-y: auto; }
+        .news-item { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+        .news-item:hover { border-color: #2980b9; box-shadow: 0 2px 8px rgba(41,128,185,0.2); }
+        .news-item h4 { margin: 0 0 6px 0; font-size: 13px; color: #2c3e50; line-height: 1.4; }
+        .news-item p { margin: 0; font-size: 11px; color: #666; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        
+        /* 图片搜索 */
+        .avatar-search-box { background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-top: 10px; }
+        .avatar-search-box .input-group { display: flex; gap: 8px; margin-top: 8px; }
+        .avatar-search-box input { flex: 1; }
+        .avatar-search-box button { width: auto; padding: 8px 15px; margin: 0; font-size: 13px; }
+        .avatar-search-result { margin-top: 12px; display: flex; align-items: center; gap: 12px; display: none; }
+        .avatar-search-result img { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #FFD700; object-fit: cover; }
+        .avatar-search-result button { width: auto; padding: 8px 15px; margin: 0; font-size: 13px; background: #27ae60; }
+        
+        /* 关键字标签 */
+        .keyword-tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; overflow-x: hidden; padding: 5px 0; }
+        .keyword-tag { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 5px 12px; border-radius: 15px; font-size: 12px; cursor: pointer; user-select: none; transition: all 0.2s; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+        .keyword-tag:hover { background: #ffd700; color: #333; border-color: #ffd700; }
+        .keyword-tag.added { background: #d4edda; border-color: #c3e6cb; color: #155724; cursor: default; }
+
+        /* 自定义RSS按钮 */
+        .btn-save-rss { background: #27ae60; padding: 8px 12px; font-size: 12px; border-radius: 6px; margin-top: 8px; width: 100%; }
+        .btn-save-rss:hover { background: #219150; }
+        .btn-delete-rss { background: #e74c3c; padding: 8px 12px; font-size: 12px; border-radius: 6px; margin-top: 8px; width: 100%; }
+        .btn-delete-rss:hover { background: #c0392b; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h1>📰 News Card Generator <span style="font-size:12px; font-weight:normal; color:#27ae60;">(Live Preview)</span></h1>
+
+        <!-- 1. Fetch News -->
+        <details class="section-card" open>
+            <summary>📡 Fetch News from RSS / 抓取新闻</summary>
+            <div class="section-content">
+                <div class="form-group">
+                    <select id="rss_preset">
+                        <option value="">-- Custom RSS URL / 自定义 --</option>
+                        <optgroup label="🌍 国际新闻 / International News">
+                            <option value="https://feedx.net/rss/ap.xml">Associated Press (AP)</option>
+                            <option value="https://feeds.bbci.co.uk/news/rss.xml">BBC News (General)</option>
+                            <option value="https://www.allsides.com/rss/news">AllSides News</option>
+                            <option value="http://feeds.bbci.co.uk/news/world/rss.xml">BBC News (World)</option>
+                            <option value="https://www.theguardian.com/world/rss">The Guardian (World)</option>
+                            <option value="https://www.aljazeera.com/xml/rss/all.xml">Al Jazeera</option>
+                            <option value="https://rss.dw.com/rdf/rss-en-all">Deutsche Welle (DW)</option>
+                            <option value="https://www.reutersagency.com/feed/">Reuters (World)</option>
+                        </optgroup>
+                        <optgroup label="🇫🇷 法语新闻 / French News">
+                            <option value="https://www.france24.com/fr/rss">France 24 (FR)</option>
+                            <option value="https://www.rfi.fr/fr/rss">RFI (FR)</option>
+                            <option value="https://www.lemonde.fr/rss/une.xml">Le Monde (FR)</option>
+                            <option value="https://www.lefigaro.fr/rss/figaro_actualites.xml">Le Figaro (FR)</option>
+                            <option value="https://feeds.leparisien.fr/leparisien/rss">Le Parisien (FR)</option>
+                            <option value="https://www.20minutes.fr/rss/une.xml">20 Minutes (FR)</option>
+                            <option value="https://www.franceinfo.fr/rss/">franceinfo (FR)</option>
+                            <option value="https://fr.euronews.com/rss">Euronews (FR)</option>
+                        </optgroup>
+                        <optgroup label="🇨🇳 中文新闻 / Chinese News">
+                            <option value="https://36kr.com/feed">36氪</option>
+                            <option value="https://www.ithome.com/rss/">IT之家</option>
+                            <option value="https://rss.huxiu.com/">虎嗅网</option>
+                            <option value="http://news.163.com/special/00011K6L/rss_newsattitude.xml">网易新闻 (有态度)</option>
+                            <option value="https://plink.anyfeeder.com/zhihu/daily">知乎日报 (AnyFeeder)</option>
+                            <option value="https://plink.anyfeeder.com/cnbeta">CNBeta (AnyFeeder)</option>
+                            <option value="https://rsshub.qufy.me/zaobao/realtime/china">联合早报 (中港台, 镜像)</option>
+                            <option value="https://rsshub.qufy.me/zaobao/realtime/world">联合早报 (国际, 镜像)</option>
+                            <option value="https://rsshub.qufy.me/thepaper/featured">澎湃新闻 (镜像)</option>
+                            <option value="https://remoshuang.com/rss">热摸爽 (全网热榜聚合)</option>
+                        </optgroup>
+                        <optgroup label="🇦🇪 海湾地区 / Gulf Region">
+                            <option value="https://www.omannews.gov.om/rss.ona">Oman News Agency (AR)</option>
+                            <option value="https://www.omannews.gov.om/rss.ona?rsslang=en">Oman News Agency (EN)</option>
+                            <option value="https://www.aljazeera.net/aljazeerarss/a7c186be-1baa-4bd4-9d80-a84db769f779/73d0e1b4-532f-45ef-b135-bfdff8b8cab9">Al Jazeera Arabic</option>
+                            <option value="https://www.alarabiya.net/tools/rss">Al Arabiya (AR)</option>
+                            <option value="https://english.alarabiya.net/tools/rss">Al Arabiya (EN)</option>
+                            <option value="https://sabq.org/rss">Sabq (AR)</option>
+                            <option value="https://gulfnews.com/rss">Gulf News (EN)</option>
+                            <option value="https://www.khaleejtimes.com/rss">Khaleej Times (EN)</option>
+                        </optgroup>
+                        <optgroup label="🤖 科技与AI / Tech & AI">
+                            <option value="https://openai.com/news/rss.xml">OpenAI Blog</option>
+                            <option value="https://rss.arxiv.org/rss/cs.AI">arXiv AI</option>
+                            <option value="https://hnrss.org/newest?q=AI">Hacker News (AI)</option>
+                            <option value="https://deepmind.google/blog/rss.xml">Google DeepMind</option>
+                            <option value="https://blog.google/technology/ai/rss/">Google AI Blog</option>
+                        </optgroup>
+                        <optgroup label="🎨 漫画 / Comics">
+                            <option value="https://www.comicsrss.com/rss/calvinandhobbes.rss">Calvin and Hobbes</option>
+                            <option value="https://www.comicsrss.com/rss/garfield.rss">Garfield</option>
+                            <option value="https://www.comicsrss.com/rss/pearlsbeforeswine.rss">Pearls Before Swine</option>
+                            <option value="https://www.comicsrss.com/rss/dilbert.rss">Dilbert</option>
+                            <option value="https://www.comicsrss.com/rss/foxtrot.rss">Foxtrot</option>
+                            <option value="https://www.comicsrss.com/rss/peanuts.rss">Peanuts</option>
+                            <option value="https://www.comicsrss.com/rss/doonesbury.rss">Doonesbury</option>
+                            <option value="https://www.comicsrss.com/rss/babyblues.rss">Baby Blues</option>
+                            <option value="https://www.comicsrss.com/rss/bc.rss">BC</option>
+                            <option value="https://www.comicsrss.com/rss/beetlebailey.rss">Beetle Bailey</option>
+                            <option value="https://www.comicsrss.com/rss/blondie.rss">Blondie</option>
+                            <option value="https://www.comicsrss.com/rss/getfuzzy.rss">Get Fuzzy</option>
+                            <option value="https://www.comicsrss.com/rss/nonsequitur.rss">Non Sequitur</option>
+                            <option value="https://www.comicsrss.com/rss/zits.rss">Zits</option>
+                        </optgroup>
+                        <optgroup label="🛠️ 自定义工具 / Tools">
+                            <option value="https://www.bing.com/news/search?format=RSS&q=YourSearchTerm">Bing News RSS (需自行替换关键词)</option>
+                            <option value="https://rsshub.app/">RSSHub (需自行生成链接)</option>
+                            <option value="https://openrss.org/">OpenRSS (需自行生成链接)</option>
+                            <option value="https://rss-bridge.org/">RSS-Bridge (需自行生成链接)</option>
+                            <option value="https://wndrss.com/">WNDRSS (需自行生成链接)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="slider-group" style="margin-top: 10px;">
+                    <span>Fetch Count</span>
+                    <input type="range" id="fetch_count" min="1" max="100" step="1" value="10" oninput="document.getElementById('fetch_count_val').textContent = this.value">
+                    <span id="fetch_count_val" style="width: 30px; text-align: left; color: #e74c3c; font-weight: bold;">10</span>
+                </div>
+
+                <div class="form-group">
+                    <input type="text" id="rss_url_input" placeholder="https://example.com/rss.xml">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" onclick="fetchNewsList()" style="background: #2980b9; font-size: 14px; padding: 10px; flex: 1;">📥 Fetch / 抓取</button>
+                    <button type="button" class="btn-save-rss" onclick="saveCustomRSS()" style="flex: 0 0 90px;">💾 保存源</button>
+                    <button type="button" class="btn-delete-rss" onclick="deleteCustomRSS()" style="flex: 0 0 90px;">🗑️ 删除源</button>
+                </div>
+                <div id="fetch-status" class="hint" style="margin-top: 5px;"></div>
+
+                <div class="news-list" id="news-list-container"></div>
+                <div class="keyword-tags" id="keyword-tags-container"></div>
+            </div>
+        </details>
+
+        <form id="generator-form">
+            <!-- 2. Main Background -->
+            <details class="section-card">
+                <summary>🖼️ Main Background / 主背景图</summary>
+                <div class="section-content">
+                    <input type="file" name="main_img" id="main_img_input" accept="image/*" required style="display:none;">
+                    <div class="paste-wrapper">
+                        <div class="paste-area main-paste" id="main_paste_area" tabindex="0">🟢 Click to activate, Ctrl+V / 点击激活粘贴</div>
+                        <button type="button" class="btn-select-file" onclick="document.getElementById('main_img_input').click()">📁 File</button>
+                    </div>
+                    <p class="hint" id="main_file_name">No file selected</p>
+                </div>
+            </details>
+
+            <!-- 3. Canvas & Background -->
+            <details class="section-card">
+                <summary>🎨 Canvas & Background / 画幅与背景</summary>
+                <div class="section-content">
+                    <div class="form-group">
+                        <select name="canvas_ratio" id="canvas_ratio_select">
+                            <option value="original" selected>Original Size / 原图尺寸</option>
+                            <option value="4:5">4:5 (Instagram)</option>
+                            <option value="9:16">9:16 (TikTok/抖音)</option>
+                            <option value="3:4">3:4 (小红书)</option>
+                            <option value="1:1">1:1 (Square)</option>
+                        </select>
+                    </div>
+                    <div class="slider-group"><span>Bg Zoom</span><input type="range" name="bg_zoom" min="0.5" max="3.0" step="0.05" value="1.0"></div>
+                    <div class="slider-group"><span>Pan X</span><input type="range" name="bg_offset_x" min="0" max="1" step="0.05" value="0.5"></div>
+                    <div class="slider-group"><span>Pan Y</span><input type="range" name="bg_offset_y" min="0" max="1" step="0.05" value="0.5"></div>
+                    <div class="slider-group"><span>Darken</span><input type="range" name="darken_opacity" min="0" max="80" value="0"></div>
+                    <div class="slider-group"><span>Blur</span><input type="range" name="blur_radius" min="0" max="20" value="0"></div>
+
+                    <div class="slider-group"><span>Grad Height</span><input type="range" name="gradient_height_ratio" min="0.0" max="0.5" step="0.01" value="0.15"></div>
+                    <div class="slider-group"><span>Grad Y Pos</span><input type="range" name="gradient_end_y_ratio" id="grad_y_pos_slider" min="0.3" max="1.0" step="0.01" value="0.66"></div>
+                    <div class="color-group"><span>Grad Start</span><input type="color" name="gradient_start_color" value="#000000"></div>
+                    <div class="color-group"><span>Grad End</span><input type="color" name="gradient_end_color" value="#000000"></div>
+
+                    <div class="color-group"><span>Border Color</span><input type="color" name="avatar_border_color" value="#FFD700"></div>
+                    <div class="slider-group"><span>Border Width</span><input type="range" name="avatar_border_width" min="0" max="20" value="6"></div>
+                </div>
+            </details>
+
+            <!-- 4. Top-Left Badge -->
+            <details class="section-card">
+                <summary>🏷️ Top-Left Badge / 左上角标签</summary>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label>Badge Text / 标签文字</label>
+                        <input type="text" name="badge_text" placeholder="e.g. VANCOUVER" value="">
+                    </div>
+                    <div class="form-group" style="margin-top:5px;">
+                        <label>Font / 字体</label>
+                        <select name="badge_font_name">
+                            <optgroup label="Sans-Serif / 无衬线">
+                                <option value="Arial 常规 (Arial)">Arial 常规</option>
+                                <option value="Arial 粗体 (Arial Bold)">Arial 粗体</option>
+                                <option value="Arial 黑体 (Arial Black)">Arial 黑体</option>
+                                <option value="Impact 粗体">Impact 粗体</option>
+                                <option value="微软雅黑常规 (Microsoft YaHei)">微软雅黑常规</option>
+                                <option value="微软雅黑粗体 (Microsoft YaHei Bold)" selected>微软雅黑粗体</option>
+                                <option value="黑体 (SimHei)">黑体</option>
+                                <option value="苹方常规 (PingFang)">苹方常规</option>
+                            </optgroup>
+                            <optgroup label="Serif / 衬线体">
+                                <option value="Times New Roman 常规">Times New Roman 常规</option>
+                                <option value="Times New Roman 粗体">Times New Roman 粗体</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="宋体 (SimSun)">宋体</option>
+                                <option value="楷体 (KaiTi)">楷体</option>
+                            </optgroup>
+                            <optgroup label="Artistic / 艺术体">
+                                <option value="Comic Sans MS">Comic Sans MS</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Verdana">Verdana</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="slider-group"><span>Size / 字号</span><input type="range" name="badge_size" min="10" max="80" value="30"></div>
+                    <div class="color-group"><span>Text Color / 文字颜色</span><input type="color" name="badge_text_color" value="#000000"></div>
+                    <div class="color-group"><span>Bg Color / 背景颜色</span><input type="color" name="badge_bg_color" value="#FFFFFF"></div>
+                    <div class="slider-group"><span>Pos X / X位置</span><input type="range" name="badge_x" min="0" max="800" value="50"></div>
+                    <div class="slider-group"><span>Pos Y / Y位置</span><input type="range" name="badge_y" min="0" max="600" value="50"></div>
+                </div>
+            </details>
+
+            <!-- 5. Top-Right Logo -->
+            <details class="section-card">
+                <summary>🔝 Top-Right Logo / 右上角Logo</summary>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label>Logo Text / Logo文字</label>
+                        <input type="text" name="logo_text" placeholder="e.g. @YourChannel" value="">
+                    </div>
+                    <div class="form-group" style="margin-top:5px;">
+                        <label>Font / 字体</label>
+                        <select name="logo_font_name">
+                            <optgroup label="Sans-Serif / 无衬线">
+                                <option value="Arial 常规 (Arial)">Arial 常规</option>
+                                <option value="Arial 粗体 (Arial Bold)">Arial 粗体</option>
+                                <option value="Arial 黑体 (Arial Black)">Arial 黑体</option>
+                                <option value="Impact 粗体">Impact 粗体</option>
+                                <option value="微软雅黑常规 (Microsoft YaHei)">微软雅黑常规</option>
+                                <option value="微软雅黑粗体 (Microsoft YaHei Bold)" selected>微软雅黑粗体</option>
+                                <option value="黑体 (SimHei)">黑体</option>
+                                <option value="苹方常规 (PingFang)">苹方常规</option>
+                            </optgroup>
+                            <optgroup label="Serif / 衬线体">
+                                <option value="Times New Roman 常规">Times New Roman 常规</option>
+                                <option value="Times New Roman 粗体">Times New Roman 粗体</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="宋体 (SimSun)">宋体</option>
+                                <option value="楷体 (KaiTi)">楷体</option>
+                            </optgroup>
+                            <optgroup label="Artistic / 艺术体">
+                                <option value="Comic Sans MS">Comic Sans MS</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Verdana">Verdana</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="slider-group"><span>Size / 字号</span><input type="range" name="logo_size" min="10" max="80" value="40"></div>
+                    <div class="color-group"><span>Color / 颜色</span><input type="color" name="logo_color" value="#FFFFFF"></div>
+                    <div class="slider-group"><span>Margin X / 距右</span><input type="range" name="logo_x" min="0" max="500" value="50"></div>
+                    <div class="slider-group"><span>Margin Y / 距上</span><input type="range" name="logo_y" min="0" max="500" value="50"></div>
+                </div>
+            </details>
+
+            <!-- 6. Bottom CTA -->
+            <details class="section-card">
+                <summary>🔘 Bottom CTA / 底部按钮</summary>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label>Button Text / 按钮文字</label>
+                        <input type="text" name="cta_text" placeholder="e.g. READ CAPTION FOR DETAILS" value="">
+                    </div>
+                    <div class="form-group" style="margin-top:5px;">
+                        <label>Font / 字体</label>
+                        <select name="cta_font_name">
+                            <optgroup label="Sans-Serif / 无衬线">
+                                <option value="Arial 常规 (Arial)">Arial 常规</option>
+                                <option value="Arial 粗体 (Arial Bold)">Arial 粗体</option>
+                                <option value="Arial 黑体 (Arial Black)">Arial 黑体</option>
+                                <option value="Impact 粗体">Impact 粗体</option>
+                                <option value="微软雅黑常规 (Microsoft YaHei)">微软雅黑常规</option>
+                                <option value="微软雅黑粗体 (Microsoft YaHei Bold)" selected>微软雅黑粗体</option>
+                                <option value="黑体 (SimHei)">黑体</option>
+                                <option value="苹方常规 (PingFang)">苹方常规</option>
+                            </optgroup>
+                            <optgroup label="Serif / 衬线体">
+                                <option value="Times New Roman 常规">Times New Roman 常规</option>
+                                <option value="Times New Roman 粗体">Times New Roman 粗体</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="宋体 (SimSun)">宋体</option>
+                                <option value="楷体 (KaiTi)">楷体</option>
+                            </optgroup>
+                            <optgroup label="Artistic / 艺术体">
+                                <option value="Comic Sans MS">Comic Sans MS</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Verdana">Verdana</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="slider-group"><span>Size / 字号</span><input type="range" name="cta_font_size" min="10" max="80" value="30"></div>
+                    <div class="color-group"><span>Text Color / 文字颜色</span><input type="color" name="cta_text_color" value="#000000"></div>
+                    <div class="color-group"><span>Bg Color / 背景颜色</span><input type="color" name="cta_bg_color" value="#FFFFFF"></div>
+                    <div class="slider-group"><span>Radius / 圆角</span><input type="range" name="cta_radius" min="0" max="50" value="10"></div>
+                    <div class="form-group" style="margin-top:5px;">
+                        <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom: 10px;">
+                            <input type="checkbox" name="cta_shadow" value="true" style="width:auto;">
+                            Shadow / 阴影效果
+                        </label>
+                    </div>
+                    <div class="slider-group"><span>Pos X / X位置</span><input type="range" name="cta_x" min="0" max="800" value="350"></div>
+                    <div class="slider-group"><span>Pos Y / Y位置</span><input type="range" name="cta_y" min="0" max="1200" value="1100"></div>
+                    <div class="form-group">
+                        <label>Link (optional) / 链接 (可选，生成后自动复制)</label>
+                        <input type="text" name="cta_url" id="cta_url_input" placeholder="https://your-link.com">
+                    </div>
+                </div>
+            </details>
+
+            <!-- 7. Avatars -->
+            <details class="section-card">
+                <summary>👤 Avatars / 头像设置 (1 & 2)</summary>
+                <div class="section-content">
+                    <!-- Avatar 1 -->
+                    <div class="sub-section">
+                        <h4>Avatar 1 / 头像一 (Left)</h4>
+                        <input type="file" name="avatar1" id="avatar1_input" accept="image/*" style="display:none;">
+                        <div class="paste-wrapper">
+                            <div class="paste-area avatar1-paste" id="avatar1_paste_area" tabindex="0">🔵 Click to activate / 点击激活</div>
+                            <button type="button" class="btn-select-file" onclick="document.getElementById('avatar1_input').click()">📁 File</button>
+                        </div>
+                        <p class="hint" id="avatar1_file_name">No file selected</p>
+
+                        <div class="avatar-search-box">
+                            <label>🌐 Image Search / 图片搜索 (人物、公司、机器人等)</label>
+                            <div class="input-group">
+                                <input type="text" id="avatar1_search_input" placeholder="e.g. Trump, Tesla, Walmart logo">
+                                <button type="button" onclick="searchAvatar('avatar1')">Search</button>
+                            </div>
+                            <p class="hint" style="margin-top: 5px;">支持搜索：人物、公司、品牌、机器人、地标。建议加上 "logo" 或 "company"。</p>
+                            <div class="avatar-search-result" id="avatar1_search_result">
+                                <img id="avatar1_search_img" src="" alt="Avatar">
+                                <button type="button" onclick="applySearchedAvatar('avatar1')">Use / 使用</button>
+                            </div>
+                        </div>
+
+                        <div class="slider-group"><span>Circle Size</span><input type="range" name="avatar1_size" min="80" max="400" value="220"></div>
+                        <div class="slider-group"><span>Pos X</span><input type="range" name="avatar1_x" min="0" max="860" value="50"></div>
+                        <div class="slider-group"><span>Pos Y</span><input type="range" name="avatar1_y" min="0" max="800" value="50"></div>
+                        <div class="slider-group"><span>Face Zoom</span><input type="range" name="avatar1_zoom" min="1.0" max="5.0" step="0.1" value="1.0" oninput="document.getElementById('avatar1_zoom_val').textContent = this.value + 'x'"><span id="avatar1_zoom_val" style="width:40px;text-align:left;color:#e74c3c;font-weight:bold;">1.0x</span></div>
+                        <div class="slider-group"><span>Pan X</span><input type="range" name="avatar1_offset_x" min="0" max="1" step="0.05" value="0.5"></div>
+                        <div class="slider-group"><span>Pan Y</span><input type="range" name="avatar1_offset_y" min="0" max="1" step="0.05" value="0.5"></div>
+                    </div>
+
+                    <!-- Avatar 2 -->
+                    <div class="sub-section">
+                        <h4>Avatar 2 / 头像二 (Right, Optional)</h4>
+                        <input type="file" name="avatar2" id="avatar2_input" accept="image/*" style="display:none;">
+                        <div class="paste-wrapper">
+                            <div class="paste-area avatar2-paste" id="avatar2_paste_area" tabindex="0">🟣 Click to activate / 点击激活</div>
+                            <button type="button" class="btn-select-file" onclick="document.getElementById('avatar2_input').click()">📁 File</button>
+                        </div>
+                        <p class="hint" id="avatar2_file_name">No file selected</p>
+
+                        <div class="avatar-search-box">
+                            <label>🌐 Image Search / 图片搜索 (人物、公司、机器人等)</label>
+                            <div class="input-group">
+                                <input type="text" id="avatar2_search_input" placeholder="e.g. Trump, Tesla, Walmart logo">
+                                <button type="button" onclick="searchAvatar('avatar2')">Search</button>
+                            </div>
+                            <p class="hint" style="margin-top: 5px;">支持搜索：人物、公司、品牌、机器人、地标。建议加上 "logo" 或 "company"。</p>
+                            <div class="avatar-search-result" id="avatar2_search_result">
+                                <img id="avatar2_search_img" src="" alt="Avatar">
+                                <button type="button" onclick="applySearchedAvatar('avatar2')">Use / 使用</button>
+                            </div>
+                        </div>
+
+                        <div class="slider-group"><span>Circle Size</span><input type="range" name="avatar2_size" min="80" max="400" value="220"></div>
+                        <div class="slider-group"><span>Pos X</span><input type="range" name="avatar2_x" min="0" max="860" value="810"></div>
+                        <div class="slider-group"><span>Pos Y</span><input type="range" name="avatar2_y" min="0" max="800" value="50"></div>
+                        <div class="slider-group"><span>Face Zoom</span><input type="range" name="avatar2_zoom" min="1.0" max="5.0" step="0.1" value="1.0" oninput="document.getElementById('avatar2_zoom_val').textContent = this.value + 'x'"><span id="avatar2_zoom_val" style="width:40px;text-align:left;color:#e74c3c;font-weight:bold;">1.0x</span></div>
+                        <div class="slider-group"><span>Pan X</span><input type="range" name="avatar2_offset_x" min="0" max="1" step="0.05" value="0.5"></div>
+                        <div class="slider-group"><span>Pan Y</span><input type="range" name="avatar2_offset_y" min="0" max="1" step="0.05" value="0.5"></div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px; background: #fff8e1; padding: 12px; border-radius: 8px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0;">
+                            <input type="checkbox" name="auto_face_detect" value="true" style="width: 18px; height: 18px;">
+                            🤖 Auto Detect Face / 自动检测人脸并居中
+                        </label>
+                    </div>
+                </div>
+            </details>
+
+            <!-- 8. Middle Text & Style -->
+            <details class="section-card">
+                <summary>📝 Middle Text & Style / 中间文字与样式</summary>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label>Middle Text / 中间文字</label>
+                        <input type="text" name="text_mid" placeholder="e.g. UNTIL 2027" value="">
+                    </div>
+                    <div class="form-group">
+                        <label>Font / 字体</label>
+                        <select name="font_mid_name">
+                            <optgroup label="Sans-Serif / 无衬线">
+                                <option value="Arial 常规 (Arial)">Arial 常规</option>
+                                <option value="Arial 粗体 (Arial Bold)">Arial 粗体</option>
+                                <option value="Arial 黑体 (Arial Black)">Arial 黑体</option>
+                                <option value="Impact 粗体">Impact 粗体</option>
+                                <option value="微软雅黑常规 (Microsoft YaHei)">微软雅黑常规</option>
+                                <option value="微软雅黑粗体 (Microsoft YaHei Bold)" selected>微软雅黑粗体</option>
+                                <option value="黑体 (SimHei)">黑体</option>
+                                <option value="苹方常规 (PingFang)">苹方常规</option>
+                            </optgroup>
+                            <optgroup label="Serif / 衬线体">
+                                <option value="Times New Roman 常规">Times New Roman 常规</option>
+                                <option value="Times New Roman 粗体">Times New Roman 粗体</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="宋体 (SimSun)">宋体</option>
+                                <option value="楷体 (KaiTi)">楷体</option>
+                            </optgroup>
+                            <optgroup label="Artistic / 艺术体">
+                                <option value="Comic Sans MS">Comic Sans MS</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Verdana">Verdana</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="slider-group"><span>Size</span><input type="range" name="font_mid_size" min="20" max="120" value="55"></div>
+                    <div class="color-group"><span>Color</span><input type="color" name="font_mid_color" value="#FFFFFF"></div>
+                    <div class="slider-group"><span>Stroke W</span><input type="range" name="font_mid_stroke_w" min="0" max="10" value="0"></div>
+                    <div class="color-group"><span>Stroke C</span><input type="color" name="font_mid_stroke_c" value="#000000"></div>
+
+                    <div class="form-group" style="margin-top: 15px; border-top: 1px dashed #eee; padding-top: 15px;">
+                        <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom: 10px;">
+                            <input type="checkbox" name="show_mid_line" value="true" checked style="width:auto;">
+                            Show Middle Line / 显示中间分割线
+                        </label>
+                        <p class="hint" style="margin-top:-5px; margin-bottom:10px;">💡 无需输入中间文字，也可显示分割线</p>
+                        <label>Line Margin / 分割线边距</label>
+                        <div class="slider-group"><span>Margin</span><input type="range" name="mid_line_margin" min="0" max="500" value="60"></div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- 9. Bottom Text & Style -->
+            <details class="section-card">
+                <summary>📝 Bottom Text & Style / 底部文字与样式</summary>
+                <div class="section-content">
+                    <div class="form-group">
+                        <label>Bottom Text / 底部正文 *</label>
+                        <input type="text" name="text_bottom" id="text_bottom_input" placeholder="e.g. Ship sinks and crew missing after Black Sea drone attack" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Font / 字体</label>
+                        <select name="font_bottom_name">
+                            <optgroup label="Sans-Serif / 无衬线">
+                                <option value="Arial 常规 (Arial)">Arial 常规</option>
+                                <option value="Arial 粗体 (Arial Bold)">Arial 粗体</option>
+                                <option value="Arial 黑体 (Arial Black)">Arial 黑体</option>
+                                <option value="Impact 粗体">Impact 粗体</option>
+                                <option value="微软雅黑常规 (Microsoft YaHei)">微软雅黑常规</option>
+                                <option value="微软雅黑粗体 (Microsoft YaHei Bold)" selected>微软雅黑粗体</option>
+                                <option value="黑体 (SimHei)">黑体</option>
+                                <option value="苹方常规 (PingFang)">苹方常规</option>
+                            </optgroup>
+                            <optgroup label="Serif / 衬线体">
+                                <option value="Times New Roman 常规">Times New Roman 常规</option>
+                                <option value="Times New Roman 粗体">Times New Roman 粗体</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="宋体 (SimSun)">宋体</option>
+                                <option value="楷体 (KaiTi)">楷体</option>
+                            </optgroup>
+                            <optgroup label="Artistic / 艺术体">
+                                <option value="Comic Sans MS">Comic Sans MS</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Verdana">Verdana</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="slider-group"><span>Size</span><input type="range" name="font_bottom_size_override" min="0" max="150" value="0"></div>
+                    <div class="color-group"><span>Color</span><input type="color" name="font_bottom_color" value="#FFFFFF"></div>
+                    <div class="slider-group"><span>Stroke W</span><input type="range" name="font_bottom_stroke_w" min="0" max="10" value="0"></div>
+                    <div class="color-group"><span>Stroke C</span><input type="color" name="font_bottom_stroke_c" value="#000000"></div>
+
+                    <div class="form-group" style="margin-top: 15px; border-top: 1px dashed #eee; padding-top: 15px;">
+                        <label>Highlight Keywords / 高亮关键字</label>
+                        <div class="keyword-list" id="keyword-list"></div>
+                        <button type="button" class="btn-add-keyword" onclick="addKeywordGroup()">➕ Add Keyword Group</button>
+                        <input type="hidden" name="keywords_json" id="keywords_json" value="[]">
+                    </div>
+                </div>
+            </details>
+        </form>
+    </div>
+
+    <div class="preview">
+        <div id="placeholder" class="placeholder">Upload an image and adjust parameters</div>
+        <img id="preview-img" src="" style="display: none;">
+        <div id="loading-overlay" class="loading-overlay">Generating...</div>
+
+        <div class="action-buttons" id="action-buttons" style="display: none;">
+            <button class="copy-btn" onclick="copyImage()">📋 Copy / 复制图片</button>
+            <button class="download-btn" onclick="downloadImage()">📥 Download / 下载图片</button>
+        </div>
+
+        <div class="history-panel" id="history-panel">
+            <h4>📜 History / 历史记录 <button onclick="clearHistory()">Clear / 清空</button></h4>
+            <div class="history-list" id="history-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentImageBase64 = '';
+        let debounceTimer = null;
+        let activePasteTarget = null;
+        let fetchedNewsList = [];
+        let searchedAvatarBase64 = { avatar1: null, avatar2: null };
+        let history = JSON.parse(localStorage.getItem('card_history') || '[]');
+
+        function addToHistory(imgBase64) {
+            const img = new Image();
+            img.src = imgBase64;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const scale = 150 / img.width;
+                canvas.width = 150;
+                canvas.height = img.height * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const smallBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                history.unshift(smallBase64);
+                if (history.length > 10) history.pop();
+                localStorage.setItem('card_history', JSON.stringify(history));
+                renderHistory();
+            };
+        }
+
+        function renderHistory() {
+            const panel = document.getElementById('history-panel');
+            const list = document.getElementById('history-list');
+            if (history.length === 0) { panel.style.display = 'none'; return; }
+            panel.style.display = 'block';
+            list.innerHTML = '';
+            history.forEach((base64) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `<img src="${base64}">`;
+                div.onclick = () => {
+                    document.getElementById('preview-img').src = base64;
+                    document.getElementById('preview-img').style.display = 'block';
+                    document.getElementById('placeholder').style.display = 'none';
+                    document.getElementById('action-buttons').style.display = 'flex';
+                    currentImageBase64 = base64;
+                };
+                list.appendChild(div);
+            });
+        }
+
+        function clearHistory() {
+            if (!confirm("Clear all history? / 确定清空历史记录？")) return;
+            history = [];
+            localStorage.removeItem('card_history');
+            renderHistory();
+        }
+
+        async function copyImage() {
+            if (!currentImageBase64) return;
+            try {
+                const res = await fetch(currentImageBase64);
+                const blob = await res.blob();
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                alert("✅ Copied to clipboard! / 已复制到剪贴板！");
+            } catch (err) {
+                console.error('复制失败', err);
+                alert("❌ Copy failed. Please use Download instead.");
+            }
+        }
+
+        function downloadImage() {
+            if (!currentImageBase64) return;
+            const link = document.createElement('a');
+            link.href = currentImageBase64;
+            link.download = 'news_card_' + Date.now() + '.jpg';
+            link.click();
+        }
+
+        // 原图尺寸模式下的滑块联动
+        document.addEventListener('DOMContentLoaded', function() {
+            const ratioSelect = document.querySelector('select[name="canvas_ratio"]');
+            const gradYPosInput = document.getElementById('grad_y_pos_slider');
+
+            ratioSelect.addEventListener('change', function() {
+                if (this.value === 'original') {
+                    gradYPosInput.value = '1.0';
+                    gradYPosInput.disabled = true;
+                } else {
+                    gradYPosInput.disabled = false;
+                }
+            });
+
+            if (ratioSelect.value === 'original') {
+                gradYPosInput.value = '1.0';
+                gradYPosInput.disabled = true;
+            }
+
+            // 加载已保存的自定义RSS源，并应用已删除预设源的黑名单
+            const removedPresets = JSON.parse(localStorage.getItem('removed_presets') || '[]');
+            const selectElement = document.getElementById('rss_preset');
+            Array.from(selectElement.options).forEach(opt => {
+                if (removedPresets.includes(opt.value)) {
+                    opt.remove();
+                }
+            });
+            loadCustomRSSFeeds();
+        });
+
+        // 自定义RSS源管理逻辑
+        function loadCustomRSSFeeds() {
+            const savedFeeds = JSON.parse(localStorage.getItem('custom_rss_feeds') || '[]');
+            const select = document.getElementById('rss_preset');
+
+            Array.from(select.options).forEach(opt => {
+                if (opt.dataset.custom === 'true') {
+                    opt.remove();
+                }
+            });
+
+            savedFeeds.forEach(feed => {
+                const opt = document.createElement('option');
+                opt.value = feed.url;
+                opt.textContent = feed.name;
+                opt.dataset.custom = 'true';
+                select.appendChild(opt);
+            });
+        }
+
+        function saveCustomRSS() {
+            const url = document.getElementById('rss_url_input').value.trim();
+            if (!url) { alert("Please enter a valid RSS URL first"); return; }
+
+            let name = url;
+            try {
+                const urlObj = new URL(url);
+                name = urlObj.hostname;
+            } catch (e) {
+                name = url.substring(0, 30);
+            }
+
+            const savedFeeds = JSON.parse(localStorage.getItem('custom_rss_feeds') || '[]');
+
+            if (savedFeeds.some(f => f.url === url)) {
+                alert("This RSS feed is already saved! / 该源已保存！");
+                return;
+            }
+
+            savedFeeds.push({ name: name, url: url });
+            localStorage.setItem('custom_rss_feeds', JSON.stringify(savedFeeds));
+
+            loadCustomRSSFeeds();
+
+            const select = document.getElementById('rss_preset');
+            select.value = url;
+
+            alert("✅ RSS feed saved to dropdown! / RSS源已保存到下拉菜单！");
+        }
+
+        function deleteCustomRSS() {
+            const select = document.getElementById('rss_preset');
+            const url = select.value;
+
+            if (!url) {
+                alert("Please select a RSS source from the dropdown first / 请先在下拉菜单中选择一个源");
+                return;
+            }
+
+            if (!confirm("Are you sure you want to delete this RSS source? / 确定要删除这个源吗？")) return;
+
+            const selectedOption = select.options[select.selectedIndex];
+            if (!selectedOption) return;
+
+            select.remove(select.selectedIndex);
+            document.getElementById('rss_url_input').value = '';
+
+            if (selectedOption.dataset.custom === 'true') {
+                let savedFeeds = JSON.parse(localStorage.getItem('custom_rss_feeds') || '[]');
+                savedFeeds = savedFeeds.filter(feed => feed.url !== url);
+                localStorage.setItem('custom_rss_feeds', JSON.stringify(savedFeeds));
+            } else {
+                let removedPresets = JSON.parse(localStorage.getItem('removed_presets') || '[]');
+                if (!removedPresets.includes(url)) {
+                    removedPresets.push(url);
+                    localStorage.setItem('removed_presets', JSON.stringify(removedPresets));
+                }
+            }
+
+            alert("🗑️ RSS source deleted! / 源已删除！");
+        }
+
+        document.getElementById('rss_preset').addEventListener('change', function() {
+            if (this.value) document.getElementById('rss_url_input').value = this.value;
+        });
+
+        async function fetchNewsList() {
+            const rssUrl = document.getElementById('rss_url_input').value.trim();
+            if (!rssUrl) { alert("Please enter RSS URL"); return; }
+
+            const limit = parseInt(document.getElementById('fetch_count').value) || 10;
+            
+            const statusEl = document.getElementById('fetch-status');
+            statusEl.textContent = "Fetching...";
+            statusEl.style.color = "#2980b9";
+            try {
+                const response = await fetch('/fetch_news', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ rss_url: rssUrl, limit: limit }) 
+                });
+                const data = await response.json();
+                if (data.error) { statusEl.textContent = "❌ " + data.error; statusEl.style.color = "#e74c3c"; }
+                else {
+                    statusEl.textContent = "✅ Fetched successfully"; statusEl.style.color = "#27ae60";
+                    fetchedNewsList = data.news_list;
+                    renderNewsList(data.news_list);
+                    document.getElementById('keyword-tags-container').innerHTML = '';
+                }
+            } catch (error) { statusEl.textContent = "❌ Network error"; statusEl.style.color = "#e74c3c"; }
+        }
+
+        function renderNewsList(newsList) {
+            const container = document.getElementById('news-list-container');
+            container.innerHTML = '';
+            newsList.forEach((news, index) => {
+                const div = document.createElement('div');
+                div.className = 'news-item';
+                div.innerHTML = `<h4>${news.title}</h4><p>${news.description}</p>`;
+                div.onclick = () => applyNewsItem(index);
+                container.appendChild(div);
+            });
+        }
+
+        async function applyNewsItem(index) {
+            const news = fetchedNewsList[index];
+            if (!news) return;
+            document.getElementById('text_bottom_input').value = news.title;
+            document.getElementById('text_bottom_input').dispatchEvent(new Event('input', { bubbles: true }));
+            const statusEl = document.getElementById('fetch-status');
+            statusEl.textContent = "Fetching image... / 正在抓取图片...";
+            try {
+                const response = await fetch('/fetch_news_image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image_url: news.image_url, link: news.link }) });
+                const data = await response.json();
+                if (data.image_base64) {
+                    const imgBase64 = data.image_base64;
+                    const byteString = atob(imgBase64.split(',')[1]);
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    for (let i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
+                    const blob = new Blob([ab], {type: 'image/jpeg'});
+                    const file = new File([blob], "fetched_news.jpg", {type: 'image/jpeg'});
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    const input = document.getElementById('main_img_input');
+                    input.files = dataTransfer.files;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                    document.getElementById('main_file_name').textContent = "✅ Applied: fetched_news.jpg";
+                    statusEl.textContent = "✅ Image applied";
+                    triggerAutoUpdate();
+                } else { statusEl.textContent = "⚠️ No image found"; }
+            } catch (error) { statusEl.textContent = "❌ Error fetching image"; }
+            renderKeywordTags(news.keywords);
+        }
+
+        function renderKeywordTags(keywords) {
+            const container = document.getElementById('keyword-tags-container');
+            container.innerHTML = '<label style="font-size:12px;color:#555;width:100%;margin-bottom:5px;">✨ Keywords (Click to highlight):</label>';
+            if (!keywords || keywords.length === 0) { container.innerHTML += '<span class="hint">None</span>'; return; }
+            keywords.forEach(kw => {
+                const tag = document.createElement('span');
+                tag.className = 'keyword-tag';
+                tag.textContent = kw;
+                tag.title = kw;
+                tag.onclick = () => addKeywordFromTag(tag, kw);
+                container.appendChild(tag);
+            });
+        }
+
+        function addKeywordFromTag(tagElement, keyword) {
+            if (tagElement.classList.contains('added')) return;
+            let added = false;
+            document.querySelectorAll('.keyword-item').forEach(item => {
+                const colorInput = item.querySelector('.kw-color');
+                const wordsInput = item.querySelector('.kw-words');
+                if (colorInput.value.toUpperCase() === '#FFD700') {
+                    let currentWords = wordsInput.value.split(',').map(w => w.trim()).filter(w => w);
+                    if (!currentWords.includes(keyword)) {
+                        currentWords.push(keyword);
+                        wordsInput.value = currentWords.join(', ');
+                        wordsInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        added = true;
+                    }
+                }
+            });
+            if (!added) addKeywordGroup('#FFD700', keyword);
+            tagElement.classList.add('added');
+            triggerAutoUpdate();
+        }
+
+        async function searchAvatar(target) {
+            const input = document.getElementById(target + '_search_input');
+            const name = input.value.trim();
+            if (!name) { alert("Please enter a search term"); return; }
+            const resultDiv = document.getElementById(target + '_search_result');
+            const imgEl = document.getElementById(target + '_search_img');
+            imgEl.src = '';
+            resultDiv.style.display = 'none';
+            try {
+                const response = await fetch('/search_avatar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }) });
+                const data = await response.json();
+                if (data.error) { alert(data.error); }
+                else {
+                    searchedAvatarBase64[target] = data.image_base64;
+                    imgEl.src = data.image_base64;
+                    resultDiv.style.display = 'flex';
+                }
+            } catch (error) { alert("Search failed."); }
+        }
+
+        function applySearchedAvatar(target) {
+            const base64 = searchedAvatarBase64[target];
+            if (!base64) return;
+            const byteString = atob(base64.split(',')[1]);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
+            const blob = new Blob([ab], {type: 'image/png'});
+            const file = new File([blob], "searched_image.png", {type: 'image/png'});
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            const input = document.getElementById(target + '_input');
+            input.files = dataTransfer.files;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            document.getElementById(target + '_file_name').textContent = "✅ Applied";
+            triggerAutoUpdate();
+        }
+
+        document.querySelectorAll('.paste-area').forEach(area => {
+            area.setAttribute('tabindex', '0');
+            area.addEventListener('focus', () => setActivePasteArea(area));
+            area.addEventListener('click', () => setActivePasteArea(area));
+        });
+
+        function setActivePasteArea(area) {
+            activePasteTarget = area;
+            document.querySelectorAll('.paste-area').forEach(a => { a.classList.remove('active'); a.style.borderWidth = '2px'; });
+            area.classList.add('active');
+            area.style.borderWidth = '4px';
+        }
+
+        document.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let index in items) {
+                const item = items[index];
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const blob = item.getAsFile();
+                    const file = new File([blob], `pasted_${Date.now()}.png`, { type: blob.type });
+                    let targetId = 'main_img_input';
+                    if (activePasteTarget) {
+                        if (activePasteTarget.id === 'avatar1_paste_area') targetId = 'avatar1_input';
+                        if (activePasteTarget.id === 'avatar2_paste_area') targetId = 'avatar2_input';
+                    }
+                    const input = document.getElementById(targetId);
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    input.files = dataTransfer.files;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                    const nameEl = document.getElementById(targetId.replace('_input', '_file_name'));
+                    if (nameEl) nameEl.textContent = `✅ Pasted`;
+                    activePasteTarget.classList.remove('active');
+                    activePasteTarget.style.borderWidth = '2px';
+                    activePasteTarget = null;
+                    break;
+                }
+            }
+        });
+
+        ['main', 'avatar1', 'avatar2'].forEach(prefix => {
+            const input = document.getElementById(`${prefix}_input`);
+            if (input) {
+                input.addEventListener('change', () => {
+                    const nameEl = document.getElementById(`${prefix}_file_name`);
+                    if (input.files.length > 0) nameEl.textContent = `✅ Selected`;
+                    else nameEl.textContent = 'No file selected';
+                });
+            }
+        });
+
+        function addKeywordGroup(color = '#FFD700', words = '') {
+            const list = document.getElementById('keyword-list');
+            const div = document.createElement('div');
+            div.className = 'keyword-item';
+            div.innerHTML = `<input type="color" class="kw-color" value="${color}"><input type="text" class="kw-words" placeholder="Words, comma separated" value="${words}"><button type="button" onclick="this.parentElement.remove(); triggerAutoUpdate();">Del</button>`;
+            list.appendChild(div);
+            div.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', () => { updateKeywordsJson(); triggerAutoUpdate(); });
+            });
+            updateKeywordsJson();
+        }
+
+        function updateKeywordsJson() {
+            const result = [];
+            document.querySelectorAll('.keyword-item').forEach(item => {
+                const color = item.querySelector('.kw-color').value;
+                const words = item.querySelector('.kw-words').value.split(',').map(w => w.trim()).filter(w => w);
+                if (words.length > 0) result.push({ color: color, words: words });
+            });
+            document.getElementById('keywords_json').value = JSON.stringify(result);
+        }
+
+        function triggerAutoUpdate() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => { generatePreview(); }, 300);
+        }
+
+        async function generatePreview() {
+            const form = document.getElementById('generator-form');
+            const mainImgInput = form.querySelector('input[name="main_img"]');
+            if (mainImgInput.files.length === 0) return;
+            updateKeywordsJson();
+            
+            const formData = new FormData(form);
+            const showMidLineCheckbox = document.querySelector('input[name="show_mid_line"]');
+            formData.set('show_mid_line', showMidLineCheckbox && showMidLineCheckbox.checked ? 'true' : 'false');
+
+            const loadingOverlay = document.getElementById('loading-overlay');
+            loadingOverlay.classList.add('active');
+            try {
+                const response = await fetch('/generate', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (!data.error) {
+                    currentImageBase64 = data.image;
+                    document.getElementById('preview-img').src = currentImageBase64;
+                    document.getElementById('preview-img').style.display = 'block';
+                    document.getElementById('placeholder').style.display = 'none';
+                    document.getElementById('action-buttons').style.display = 'flex';
+                    addToHistory(currentImageBase64);
+                    
+                    const ctaUrl = document.getElementById('cta_url_input')?.value.trim();
+                    if (ctaUrl) {
+                        try {
+                            await navigator.clipboard.writeText(ctaUrl);
+                            console.log("Link copied to clipboard: " + ctaUrl);
+                        } catch (e) {
+                            console.log("Could not copy link: " + e);
+                        }
+                    }
+                }
+            } catch (error) { console.error(error); }
+            finally { loadingOverlay.classList.remove('active'); }
+        }
+
+        document.querySelectorAll('input, select, textarea').forEach(el => {
+            el.addEventListener('input', triggerAutoUpdate);
+            el.addEventListener('change', triggerAutoUpdate);
+        });
+
+        renderHistory();
+        addKeywordGroup('#FFD700', 'Kyiv, Russia');
+    </script>
+</body>
+</html>

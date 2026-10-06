@@ -1,0 +1,8 @@
+Flask>=2.0.0
+Pillow>=9.0.0
+opencv-python-headless>=4.5.0
+numpy>=1.21.0
+feedparser>=6.0.0
+requests>=2.26.0
+beautifulsoup4>=4.10.0
+jieba>=0.42.1
