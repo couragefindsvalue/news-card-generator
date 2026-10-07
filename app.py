@@ -11,7 +11,8 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 from collections import Counter
-import tempfile  # ★★★ 新增：用于跨平台临时目录
+import tempfile
+import uuid
 
 try:
     import jieba.analyse
@@ -90,7 +91,6 @@ def hex_to_rgb(hex_color):
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
 
-# ★★★ 新增：图片预处理函数（强制限制尺寸，节省内存） ★★★
 def resize_image_if_needed(image_file, max_dim=1080):
     try:
         img = Image.open(image_file)
@@ -145,6 +145,10 @@ def auto_detect_face_offset(image_path, target_size):
     try:
         img = cv2.imread(image_path)
         if img is None: return 0.5, 0.5, 1.0
+
+        if len(img.shape) == 3 and img.shape[2] == 4:
+            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
@@ -275,9 +279,8 @@ def generate_image(main_img_file, avatar1_file, avatar2_file, text_mid, text_bot
                    cta_text, cta_font_size, cta_text_color, cta_bg_color, cta_x, cta_y, cta_font_name,
                    cta_radius, cta_shadow, gradient_height_ratio, gradient_end_y_ratio, gradient_start_color,
                    gradient_end_color):
-    # ★★★ 优化：单次读取主图 + 强制缩放 ★★★
     try:
-        img = resize_image_if_needed(main_img_file, max_dim=1080)  # 限制主图长边 1080px
+        img = resize_image_if_needed(main_img_file, max_dim=1080)
         if not img:
             raise ValueError("图片处理失败")
 
@@ -349,12 +352,22 @@ def generate_image(main_img_file, avatar1_file, avatar2_file, text_mid, text_bot
 
         canvas.paste(gradient_color_img, (0, top_h - gradient_h), gradient_mask)
 
-    # ★★★ 优化：头像处理（强制缩放）+ 使用 TEMP_DIR ★★★
+    # ★★★ 头像处理 ★★★
     if avatar1_file and avatar1_file.filename:
-        avatar1_img = resize_image_if_needed(avatar1_file, max_dim=600)  # 限制头像长边 600px
-        if avatar1_img:
-            temp_path1 = os.path.join(TEMP_DIR, "temp_avatar1.jpg")
-            avatar1_img.save(temp_path1)
+        temp_path1 = None
+        try:
+            avatar1_img = resize_image_if_needed(avatar1_file, max_dim=600)
+            if not avatar1_img:
+                avatar1_file.seek(0)
+                avatar1_img = Image.open(avatar1_file)
+
+            if avatar1_img.mode != 'RGB':
+                avatar1_img = avatar1_img.convert('RGB')
+
+            unique_id1 = uuid.uuid4().hex
+            temp_path1 = os.path.join(TEMP_DIR, f"temp_avatar1_{unique_id1}.jpg")
+            avatar1_img.save(temp_path1, format='JPEG')
+
             if auto_face_detect:
                 offset_x, offset_y, zoom = auto_detect_face_offset(temp_path1, avatar1_size)
                 av1 = make_circular_avatar(temp_path1, avatar1_size, avatar_border_width, avatar_border_color, offset_x,
@@ -363,12 +376,27 @@ def generate_image(main_img_file, avatar1_file, avatar2_file, text_mid, text_bot
                 av1 = make_circular_avatar(temp_path1, avatar1_size, avatar_border_width, avatar_border_color,
                                            avatar1_offset_x, avatar1_offset_y, avatar1_zoom)
             if av1: canvas.paste(av1, (avatar1_x, avatar1_y), av1)
+        except Exception as e:
+            print(f"处理头像一失败: {e}")
+        finally:
+            if temp_path1 and os.path.exists(temp_path1):
+                os.remove(temp_path1)
 
     if avatar2_file and avatar2_file.filename:
-        avatar2_img = resize_image_if_needed(avatar2_file, max_dim=600)
-        if avatar2_img:
-            temp_path2 = os.path.join(TEMP_DIR, "temp_avatar2.jpg")
-            avatar2_img.save(temp_path2)
+        temp_path2 = None
+        try:
+            avatar2_img = resize_image_if_needed(avatar2_file, max_dim=600)
+            if not avatar2_img:
+                avatar2_file.seek(0)
+                avatar2_img = Image.open(avatar2_file)
+
+            if avatar2_img.mode != 'RGB':
+                avatar2_img = avatar2_img.convert('RGB')
+
+            unique_id2 = uuid.uuid4().hex
+            temp_path2 = os.path.join(TEMP_DIR, f"temp_avatar2_{unique_id2}.jpg")
+            avatar2_img.save(temp_path2, format='JPEG')
+
             if auto_face_detect:
                 offset_x, offset_y, zoom = auto_detect_face_offset(temp_path2, avatar2_size)
                 av2 = make_circular_avatar(temp_path2, avatar2_size, avatar_border_width, avatar_border_color, offset_x,
@@ -377,6 +405,11 @@ def generate_image(main_img_file, avatar1_file, avatar2_file, text_mid, text_bot
                 av2 = make_circular_avatar(temp_path2, avatar2_size, avatar_border_width, avatar_border_color,
                                            avatar2_offset_x, avatar2_offset_y, avatar2_zoom)
             if av2: canvas.paste(av2, (avatar2_x, avatar2_y), av2)
+        except Exception as e:
+            print(f"处理头像二失败: {e}")
+        finally:
+            if temp_path2 and os.path.exists(temp_path2):
+                os.remove(temp_path2)
 
     draw = ImageDraw.Draw(canvas)
     font_mid_path = get_font_path(font_mid_name, text_mid)
@@ -556,7 +589,7 @@ def fetch_news():
     try:
         data = request.json
         rss_url = data.get('rss_url')
-        limit = max(1, min(int(data.get('limit', 10)), 100))
+        limit = max(1, min(int(data.get('limit') or 10), 100))
 
         if not rss_url: return jsonify({'error': 'Please provide an RSS URL'}), 400
         feed = feedparser.parse(rss_url)
@@ -609,13 +642,26 @@ def search_avatar():
     try:
         name = request.json.get('name')
         if not name: return jsonify({'error': 'Please provide a name'}), 400
-        headers = {'User-Agent': 'NewsCardGenerator/1.0 (test@example.com)'}
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
         image_url = None
         search_queries = [name, f"{name} logo", f"{name} company", f"{name} brand"]
+
         for query in search_queries:
             try:
-                search_url = f"https://en.wikipedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch={query}&gsrlimit=1&prop=pageimages&piprop=thumbnail&pithumbsize=500"
-                response = requests.get(search_url, headers=headers, timeout=5)
+                params = {
+                    'action': 'query',
+                    'format': 'json',
+                    'generator': 'search',
+                    'gsrsearch': query,
+                    'gsrlimit': 1,
+                    'prop': 'pageimages',
+                    'piprop': 'thumbnail',
+                    'pithumbsize': 500
+                }
+                response = requests.get("https://en.wikipedia.org/w/api.php", params=params, headers=headers, timeout=5)
                 data = response.json()
                 pages = data.get('query', {}).get('pages', {})
                 if pages:
@@ -626,25 +672,40 @@ def search_avatar():
                         break
             except Exception:
                 continue
+
         if not image_url:
             return jsonify({'error': f'No image found for "{name}". Try adding "logo" or "company".'}), 404
+
         img_response = requests.get(image_url, headers=headers, timeout=5)
         if img_response.status_code != 200:
             return jsonify({'error': 'Failed to download the image'}), 500
-        img = Image.open(io.BytesIO(img_response.content)).convert("RGB")
 
-        # ★★★ 使用 TEMP_DIR ★★★
-        temp_path = os.path.join(TEMP_DIR, "temp_avatar_search.jpg")
-        img.save(temp_path)
+        img = Image.open(io.BytesIO(img_response.content))
 
-        target_size = 220
-        offset_x, offset_y, zoom = auto_detect_face_offset(temp_path, target_size)
-        circular_avatar = make_circular_avatar(temp_path, target_size, border_width=6, border_color="#FFD700",
-                                               offset_x=offset_x, offset_y=offset_y, zoom=zoom)
-        if not circular_avatar: return jsonify({'error': 'Failed to process image'}), 500
-        buffered = io.BytesIO()
-        circular_avatar.save(buffered, format="PNG")
-        return jsonify({'image_base64': f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode()}"})
+        if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+            img = bg
+        else:
+            img = img.convert("RGB")
+
+        unique_id = uuid.uuid4().hex
+        temp_path = os.path.join(TEMP_DIR, f"temp_avatar_search_{unique_id}.jpg")
+        img.save(temp_path, format='JPEG')
+
+        try:
+            target_size = 220
+            offset_x, offset_y, zoom = auto_detect_face_offset(temp_path, target_size)
+            circular_avatar = make_circular_avatar(temp_path, target_size, border_width=6, border_color="#FFD700",
+                                                   offset_x=offset_x, offset_y=offset_y, zoom=zoom)
+            if not circular_avatar: return jsonify({'error': 'Failed to process image'}), 500
+            buffered = io.BytesIO()
+            circular_avatar.save(buffered, format="PNG")
+            return jsonify({'image_base64': f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode()}"})
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
     except Exception as e:
         return jsonify({'error': f"Search failed: {str(e)}"}), 500
 
@@ -658,69 +719,74 @@ def generate():
         text_mid = request.form.get('text_mid', '')
         text_bottom = request.form.get('text_bottom', '')
         keywords_json = request.form.get('keywords_json', '[]')
-        canvas_ratio = request.form.get('canvas_ratio', '4:5')
-        darken_opacity = float(request.form.get('darken_opacity', 0)) / 100.0
-        blur_radius = int(request.form.get('blur_radius', 0))
-        avatar_border_color = request.form.get('avatar_border_color', '#FFD700')
-        avatar_border_width = int(request.form.get('avatar_border_width', 6))
-        bg_zoom = float(request.form.get('bg_zoom', 1.0))
-        bg_offset_x = float(request.form.get('bg_offset_x', 0.5))
-        bg_offset_y = float(request.form.get('bg_offset_y', 0.5))
-        auto_face_detect = request.form.get('auto_face_detect', 'false') == 'true'
-        avatar1_size = int(request.form.get('avatar1_size', 220))
-        avatar1_x = int(request.form.get('avatar1_x', 50))
-        avatar1_y = int(request.form.get('avatar1_y', 50))
-        avatar1_offset_x = float(request.form.get('avatar1_offset_x', 0.5))
-        avatar1_offset_y = float(request.form.get('avatar1_offset_y', 0.5))
-        avatar1_zoom = float(request.form.get('avatar1_zoom', 1.0))
-        avatar2_size = int(request.form.get('avatar2_size', 220))
-        avatar2_x = int(request.form.get('avatar2_x', 1080 - 50 - avatar2_size))
-        avatar2_y = int(request.form.get('avatar2_y', 50))
-        avatar2_offset_x = float(request.form.get('avatar2_offset_x', 0.5))
-        avatar2_offset_y = float(request.form.get('avatar2_offset_y', 0.5))
-        avatar2_zoom = float(request.form.get('avatar2_zoom', 1.0))
-        font_mid_name = request.form.get('font_mid_name', '微软雅黑粗体 (Microsoft YaHei Bold)')
-        font_mid_size = int(request.form.get('font_mid_size', 55))
-        font_mid_color = request.form.get('font_mid_color', '#FFFFFF')
-        font_mid_stroke_w = int(request.form.get('font_mid_stroke_w', 0))
-        font_mid_stroke_c = request.form.get('font_mid_stroke_c', '#000000')
-        font_bottom_name = request.form.get('font_bottom_name', '微软雅黑粗体 (Microsoft YaHei Bold)')
-        font_bottom_size_override = int(request.form.get('font_bottom_size_override', 0))
-        font_bottom_color = request.form.get('font_bottom_color', '#FFFFFF')
-        font_bottom_stroke_w = int(request.form.get('font_bottom_stroke_w', 0))
-        font_bottom_stroke_c = request.form.get('font_bottom_stroke_c', '#000000')
+        canvas_ratio = request.form.get('canvas_ratio') or '4:5'
 
-        show_mid_line = request.form.get('show_mid_line', 'false') == 'true'
-        mid_line_margin = int(request.form.get('mid_line_margin', 60))
-        badge_text = request.form.get('badge_text', '')
-        badge_size = int(request.form.get('badge_size', 30))
-        badge_text_color = request.form.get('badge_text_color', '#000000')
-        badge_bg_color = request.form.get('badge_bg_color', '#FFFFFF')
-        badge_x = int(request.form.get('badge_x', 50))
-        badge_y = int(request.form.get('badge_y', 50))
-        badge_font_name = request.form.get('badge_font_name', '微软雅黑粗体 (Microsoft YaHei Bold)')
+        darken_opacity = float(request.form.get('darken_opacity') or 0) / 100.0
+        blur_radius = int(request.form.get('blur_radius') or 0)
+        avatar_border_color = request.form.get('avatar_border_color') or '#FFD700'
+        avatar_border_width = int(request.form.get('avatar_border_width') or 6)
+        bg_zoom = float(request.form.get('bg_zoom') or 1.0)
+        bg_offset_x = float(request.form.get('bg_offset_x') or 0.5)
+        bg_offset_y = float(request.form.get('bg_offset_y') or 0.5)
+        auto_face_detect = request.form.get('auto_face_detect') == 'true'
 
-        logo_text = request.form.get('logo_text', '')
-        logo_size = int(request.form.get('logo_size', 40))
-        logo_color = request.form.get('logo_color', '#FFFFFF')
-        logo_x = int(request.form.get('logo_x', 50))
-        logo_y = int(request.form.get('logo_y', 50))
-        logo_font_name = request.form.get('logo_font_name', '微软雅黑粗体 (Microsoft YaHei Bold)')
+        avatar1_size = int(request.form.get('avatar1_size') or 220)
+        avatar1_x = int(request.form.get('avatar1_x') or 50)
+        avatar1_y = int(request.form.get('avatar1_y') or 50)
+        avatar1_offset_x = float(request.form.get('avatar1_offset_x') or 0.5)
+        avatar1_offset_y = float(request.form.get('avatar1_offset_y') or 0.5)
+        avatar1_zoom = float(request.form.get('avatar1_zoom') or 1.0)
 
-        cta_text = request.form.get('cta_text', '')
-        cta_font_size = int(request.form.get('cta_font_size', 30))
-        cta_text_color = request.form.get('cta_text_color', '#000000')
-        cta_bg_color = request.form.get('cta_bg_color', '#FFFFFF')
-        cta_x = int(request.form.get('cta_x', 350))
-        cta_y = int(request.form.get('cta_y', 1100))
-        cta_font_name = request.form.get('cta_font_name', '微软雅黑粗体 (Microsoft YaHei Bold)')
-        cta_radius = int(request.form.get('cta_radius', 10))
-        cta_shadow = request.form.get('cta_shadow', 'false') == 'true'
+        avatar2_size = int(request.form.get('avatar2_size') or 220)
+        avatar2_x = int(request.form.get('avatar2_x') or 810)
+        avatar2_y = int(request.form.get('avatar2_y') or 50)
+        avatar2_offset_x = float(request.form.get('avatar2_offset_x') or 0.5)
+        avatar2_offset_y = float(request.form.get('avatar2_offset_y') or 0.5)
+        avatar2_zoom = float(request.form.get('avatar2_zoom') or 1.0)
 
-        gradient_height_ratio = float(request.form.get('gradient_height_ratio', 0.15))
-        gradient_end_y_ratio = float(request.form.get('gradient_end_y_ratio', 0.66))
-        gradient_start_color = request.form.get('gradient_start_color', '#000000')
-        gradient_end_color = request.form.get('gradient_end_color', '#000000')
+        font_mid_name = request.form.get('font_mid_name') or '微软雅黑粗体 (Microsoft YaHei Bold)'
+        font_mid_size = int(request.form.get('font_mid_size') or 55)
+        font_mid_color = request.form.get('font_mid_color') or '#FFFFFF'
+        font_mid_stroke_w = int(request.form.get('font_mid_stroke_w') or 0)
+        font_mid_stroke_c = request.form.get('font_mid_stroke_c') or '#000000'
+
+        font_bottom_name = request.form.get('font_bottom_name') or '微软雅黑粗体 (Microsoft YaHei Bold)'
+        font_bottom_size_override = int(request.form.get('font_bottom_size_override') or 0)
+        font_bottom_color = request.form.get('font_bottom_color') or '#FFFFFF'
+        font_bottom_stroke_w = int(request.form.get('font_bottom_stroke_w') or 0)
+        font_bottom_stroke_c = request.form.get('font_bottom_stroke_c') or '#000000'
+
+        show_mid_line = request.form.get('show_mid_line') == 'true'
+        mid_line_margin = int(request.form.get('mid_line_margin') or 60)
+        badge_text = request.form.get('badge_text') or ''
+        badge_size = int(request.form.get('badge_size') or 30)
+        badge_text_color = request.form.get('badge_text_color') or '#000000'
+        badge_bg_color = request.form.get('badge_bg_color') or '#FFFFFF'
+        badge_x = int(request.form.get('badge_x') or 50)
+        badge_y = int(request.form.get('badge_y') or 50)
+        badge_font_name = request.form.get('badge_font_name') or '微软雅黑粗体 (Microsoft YaHei Bold)'
+
+        logo_text = request.form.get('logo_text') or ''
+        logo_size = int(request.form.get('logo_size') or 40)
+        logo_color = request.form.get('logo_color') or '#FFFFFF'
+        logo_x = int(request.form.get('logo_x') or 50)
+        logo_y = int(request.form.get('logo_y') or 50)
+        logo_font_name = request.form.get('logo_font_name') or '微软雅黑粗体 (Microsoft YaHei Bold)'
+
+        cta_text = request.form.get('cta_text') or ''
+        cta_font_size = int(request.form.get('cta_font_size') or 30)
+        cta_text_color = request.form.get('cta_text_color') or '#000000'
+        cta_bg_color = request.form.get('cta_bg_color') or '#FFFFFF'
+        cta_x = int(request.form.get('cta_x') or 350)
+        cta_y = int(request.form.get('cta_y') or 1100)
+        cta_font_name = request.form.get('cta_font_name') or '微软雅黑粗体 (Microsoft YaHei Bold)'
+        cta_radius = int(request.form.get('cta_radius') or 10)
+        cta_shadow = request.form.get('cta_shadow') == 'true'
+
+        gradient_height_ratio = float(request.form.get('gradient_height_ratio') or 0.15)
+        gradient_end_y_ratio = float(request.form.get('gradient_end_y_ratio') or 0.66)
+        gradient_start_color = request.form.get('gradient_start_color') or '#000000'
+        gradient_end_color = request.form.get('gradient_end_color') or '#000000'
 
         if not main_img: return jsonify({'error': 'Please upload a main image'}), 400
         result_img_stream = generate_image(
@@ -743,6 +809,5 @@ def generate():
 
 
 if __name__ == '__main__':
-    # 确保本地运行时临时目录存在
     os.makedirs(TEMP_DIR, exist_ok=True)
     app.run(debug=True, port=5010)

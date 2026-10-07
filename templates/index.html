@@ -11,7 +11,6 @@
         .controls { flex: 1; max-width: 520px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow-y: auto; max-height: 90vh; }
         .controls h1 { font-size: 20px; margin-top: 0; color: #2c3e50; margin-bottom: 20px; }
         
-        /* 统一折叠卡片样式 */
         .section-card {
             background: #fff;
             border: 1px solid #e0e0e0;
@@ -62,46 +61,40 @@
             background: #fff;
         }
 
-        /* 表单元素通用样式 */
         .form-group { margin-bottom: 14px; padding-left: 0; }
         label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 12px; color: #555; }
         input[type="text"], input[type="file"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; transition: border-color 0.2s; }
         input[type="text"]:focus, select:focus { border-color: #3498db; outline: none; }
         input[type="color"] { width: 40px; height: 32px; border: none; border-radius: 4px; cursor: pointer; vertical-align: middle; padding: 2px; }
         input[type="range"] { width: 100%; margin: 0; }
-        
-        /* 滑块和颜色组 */
+
         .slider-group { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         .slider-group span { font-size: 12px; color: #666; width: 80px; text-align: right; flex-shrink: 0; }
         .slider-group input[type="range"] { flex: 1; }
         .color-group { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         .color-group span { font-size: 12px; color: #666; width: 80px; text-align: right; flex-shrink: 0; }
-        
-        /* 子区块样式 */
+
         .sub-section { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee; }
         .sub-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
         .sub-section h4 { margin: 0 0 12px 0; font-size: 13px; color: #333; }
 
-        /* 按钮 */
         button { width: 100%; padding: 12px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.3s; margin-top: 10px; }
         button:hover { background: #c0392b; box-shadow: 0 2px 8px rgba(231,76,60,0.4); }
         .btn-select-file { width: auto; padding: 0 15px; margin: 0; height: 100%; background: #555; font-size: 12px; border-radius: 8px; white-space: nowrap; }
         .btn-select-file:hover { background: #333; }
         .btn-add-keyword { background: #3498db; padding: 8px; font-size: 13px; margin-top: 5px; }
 
-        /* 预览区 */
         .preview { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         .preview img { max-width: 100%; max-height: 75vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .placeholder { color: #aaa; font-size: 18px; text-align: center; border: 2px dashed #ccc; padding: 50px; border-radius: 12px; }
-        
-        /* 操作按钮与历史记录 */
+
         .action-buttons { display: flex; gap: 10px; margin-top: 15px; width: 100%; max-width: 400px; }
         .action-buttons button { flex: 1; padding: 12px; font-size: 14px; margin: 0; }
         .copy-btn { background: #2980b9; }
         .copy-btn:hover { background: #2471a3; }
         .download-btn { background: #27ae60; }
         .download-btn:hover { background: #219150; }
-        
+
         .history-panel { margin-top: 15px; width: 100%; max-width: 400px; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none; }
         .history-panel h4 { margin: 0 0 10px 0; font-size: 14px; color: #333; display: flex; justify-content: space-between; align-items: center; }
         .history-panel h4 button { width: auto; padding: 4px 8px; font-size: 11px; background: #e74c3c; margin: 0; }
@@ -109,8 +102,7 @@
         .history-item { flex-shrink: 0; width: 60px; height: 60px; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; }
         .history-item:hover { border-color: #3498db; }
         .history-item img { width: 100%; height: 100%; object-fit: cover; }
-        
-        /* 粘贴区 */
+
         .paste-wrapper { display: flex; gap: 8px; align-items: center; margin-top: 5px; }
         .paste-area { flex: 1; border-radius: 8px; padding: 12px; text-align: center; font-size: 13px; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
         .paste-area.main-paste { border-color: #27ae60; background: #eafaf1; color: #1e8449; }
@@ -118,26 +110,22 @@
         .paste-area.avatar2-paste { border-color: #8e44ad; background: #f4ecf7; color: #6c3483; }
         .paste-area:hover { filter: brightness(0.95); }
         .paste-area.active { border-width: 4px; box-shadow: 0 0 8px rgba(0,0,0,0.2); }
-        
-        /* 关键字 */
+
         .keyword-list { margin-top: 10px; }
         .keyword-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; background: white; padding: 8px; border-radius: 6px; border: 1px solid #eee; }
         .keyword-item input[type="color"] { width: 35px; height: 35px; flex-shrink: 0; }
         .keyword-item input[type="text"] { flex: 1; margin: 0; }
         .keyword-item button { width: auto; margin: 0; padding: 6px 12px; background: #e74c3c; font-size: 12px; flex-shrink: 0; }
-        
-        /* 加载遮罩 */
+
         .loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 12px 24px; border-radius: 20px; display: none; font-size: 14px; z-index: 100; }
         .loading-overlay.active { display: block; }
 
-        /* 新闻列表 */
         .news-list { margin-top: 10px; max-height: 300px; overflow-y: auto; }
         .news-item { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
         .news-item:hover { border-color: #2980b9; box-shadow: 0 2px 8px rgba(41,128,185,0.2); }
         .news-item h4 { margin: 0 0 6px 0; font-size: 13px; color: #2c3e50; line-height: 1.4; }
         .news-item p { margin: 0; font-size: 11px; color: #666; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        
-        /* 图片搜索 */
+
         .avatar-search-box { background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-top: 10px; }
         .avatar-search-box .input-group { display: flex; gap: 8px; margin-top: 8px; }
         .avatar-search-box input { flex: 1; }
@@ -145,14 +133,12 @@
         .avatar-search-result { margin-top: 12px; display: flex; align-items: center; gap: 12px; display: none; }
         .avatar-search-result img { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #FFD700; object-fit: cover; }
         .avatar-search-result button { width: auto; padding: 8px 15px; margin: 0; font-size: 13px; background: #27ae60; }
-        
-        /* 关键字标签 */
+
         .keyword-tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; overflow-x: hidden; padding: 5px 0; }
         .keyword-tag { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 5px 12px; border-radius: 15px; font-size: 12px; cursor: pointer; user-select: none; transition: all 0.2s; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
         .keyword-tag:hover { background: #ffd700; color: #333; border-color: #ffd700; }
         .keyword-tag.added { background: #d4edda; border-color: #c3e6cb; color: #155724; cursor: default; }
 
-        /* 自定义RSS按钮 */
         .btn-save-rss { background: #27ae60; padding: 8px 12px; font-size: 12px; border-radius: 6px; margin-top: 8px; width: 100%; }
         .btn-save-rss:hover { background: #219150; }
         .btn-delete-rss { background: #e74c3c; padding: 8px 12px; font-size: 12px; border-radius: 6px; margin-top: 8px; width: 100%; }
@@ -256,8 +242,8 @@
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button type="button" onclick="fetchNewsList()" style="background: #2980b9; font-size: 14px; padding: 10px; flex: 1;">📥 Fetch / 抓取</button>
-                    <button type="button" class="btn-save-rss" onclick="saveCustomRSS()" style="flex: 0 0 90px;">💾 保存源</button>
-                    <button type="button" class="btn-delete-rss" onclick="deleteCustomRSS()" style="flex: 0 0 90px;">🗑️ 删除源</button>
+                    <button type="button" class="btn-save-rss" onclick="saveCustomRSS()" style="flex: 0 0 110px;">💾 Save / 保存源</button>
+                    <button type="button" class="btn-delete-rss" onclick="deleteCustomRSS()" style="flex: 0 0 110px;">🗑️ Delete / 删除源</button>
                 </div>
                 <div id="fetch-status" class="hint" style="margin-top: 5px;"></div>
 
@@ -347,8 +333,8 @@
                     <div class="slider-group"><span>Size / 字号</span><input type="range" name="badge_size" min="10" max="80" value="30"></div>
                     <div class="color-group"><span>Text Color / 文字颜色</span><input type="color" name="badge_text_color" value="#000000"></div>
                     <div class="color-group"><span>Bg Color / 背景颜色</span><input type="color" name="badge_bg_color" value="#FFFFFF"></div>
-                    <div class="slider-group"><span>Pos X / X位置</span><input type="range" name="badge_x" min="0" max="800" value="50"></div>
-                    <div class="slider-group"><span>Pos Y / Y位置</span><input type="range" name="badge_y" min="0" max="600" value="50"></div>
+                    <div class="slider-group"><span>Pos X / X位置</span><input type="range" name="badge_x" min="0" max="1080" value="50"></div>
+                    <div class="slider-group"><span>Pos Y / Y位置</span><input type="range" name="badge_y" min="0" max="1080" value="50"></div>
                 </div>
             </details>
 
@@ -439,8 +425,8 @@
                             Shadow / 阴影效果
                         </label>
                     </div>
-                    <div class="slider-group"><span>Pos X / X位置</span><input type="range" name="cta_x" min="0" max="800" value="350"></div>
-                    <div class="slider-group"><span>Pos Y / Y位置</span><input type="range" name="cta_y" min="0" max="1200" value="1100"></div>
+                    <div class="slider-group"><span>Pos X / X位置</span><input type="range" name="cta_x" min="0" max="1080" value="350"></div>
+                    <div class="slider-group"><span>Pos Y / Y位置</span><input type="range" name="cta_y" min="0" max="1920" value="1100"></div>
                     <div class="form-group">
                         <label>Link (optional) / 链接 (可选，生成后自动复制)</label>
                         <input type="text" name="cta_url" id="cta_url_input" placeholder="https://your-link.com">
@@ -475,9 +461,9 @@
                             </div>
                         </div>
 
-                        <div class="slider-group"><span>Circle Size</span><input type="range" name="avatar1_size" min="80" max="400" value="220"></div>
-                        <div class="slider-group"><span>Pos X</span><input type="range" name="avatar1_x" min="0" max="860" value="50"></div>
-                        <div class="slider-group"><span>Pos Y</span><input type="range" name="avatar1_y" min="0" max="800" value="50"></div>
+                        <div class="slider-group"><span>Circle Size</span><input type="range" name="avatar1_size" min="80" max="1000" value="220"></div>
+                        <div class="slider-group"><span>Pos X</span><input type="range" name="avatar1_x" min="0" max="1080" value="50"></div>
+                        <div class="slider-group"><span>Pos Y</span><input type="range" name="avatar1_y" min="0" max="1080" value="50"></div>
                         <div class="slider-group"><span>Face Zoom</span><input type="range" name="avatar1_zoom" min="1.0" max="5.0" step="0.1" value="1.0" oninput="document.getElementById('avatar1_zoom_val').textContent = this.value + 'x'"><span id="avatar1_zoom_val" style="width:40px;text-align:left;color:#e74c3c;font-weight:bold;">1.0x</span></div>
                         <div class="slider-group"><span>Pan X</span><input type="range" name="avatar1_offset_x" min="0" max="1" step="0.05" value="0.5"></div>
                         <div class="slider-group"><span>Pan Y</span><input type="range" name="avatar1_offset_y" min="0" max="1" step="0.05" value="0.5"></div>
@@ -506,9 +492,9 @@
                             </div>
                         </div>
 
-                        <div class="slider-group"><span>Circle Size</span><input type="range" name="avatar2_size" min="80" max="400" value="220"></div>
-                        <div class="slider-group"><span>Pos X</span><input type="range" name="avatar2_x" min="0" max="860" value="810"></div>
-                        <div class="slider-group"><span>Pos Y</span><input type="range" name="avatar2_y" min="0" max="800" value="50"></div>
+                        <div class="slider-group"><span>Circle Size</span><input type="range" name="avatar2_size" min="80" max="1000" value="220"></div>
+                        <div class="slider-group"><span>Pos X</span><input type="range" name="avatar2_x" min="0" max="1080" value="810"></div>
+                        <div class="slider-group"><span>Pos Y</span><input type="range" name="avatar2_y" min="0" max="1080" value="50"></div>
                         <div class="slider-group"><span>Face Zoom</span><input type="range" name="avatar2_zoom" min="1.0" max="5.0" step="0.1" value="1.0" oninput="document.getElementById('avatar2_zoom_val').textContent = this.value + 'x'"><span id="avatar2_zoom_val" style="width:40px;text-align:left;color:#e74c3c;font-weight:bold;">1.0x</span></div>
                         <div class="slider-group"><span>Pan X</span><input type="range" name="avatar2_offset_x" min="0" max="1" step="0.05" value="0.5"></div>
                         <div class="slider-group"><span>Pan Y</span><input type="range" name="avatar2_offset_y" min="0" max="1" step="0.05" value="0.5"></div>
@@ -624,6 +610,20 @@
                 </div>
             </details>
         </form>
+
+        <!-- 10. About -->
+        <details class="section-card" style="margin-top: 20px;">
+            <summary>ℹ️ About / 关于</summary>
+            <div class="section-content">
+                <p style="font-size: 13px; line-height: 1.6; color: #555;">
+                    Hi! I'm the creator of this News Card Generator. Check out my profiles below.
+                </p>
+                <div style="display: flex; gap: 10px;">
+                    <a href="https://github.com/couragefindsvalue" target="_blank" rel="noopener noreferrer" style="flex: 1; text-align: center; padding: 10px; background: #24292e; color: white; text-decoration: none; border-radius: 6px; font-size: 13px;">🐙 GitHub</a>
+                    <a href="https://couragefindsvalue.hashnode.dev" target="_blank" rel="noopener noreferrer" style="flex: 1; text-align: center; padding: 10px; background: #2962ff; color: white; text-decoration: none; border-radius: 6px; font-size: 13px;">📝 Hashnode</a>
+                </div>
+            </div>
+        </details>
     </div>
 
     <div class="preview">
@@ -717,7 +717,6 @@
             link.click();
         }
 
-        // 原图尺寸模式下的滑块联动
         document.addEventListener('DOMContentLoaded', function() {
             const ratioSelect = document.querySelector('select[name="canvas_ratio"]');
             const gradYPosInput = document.getElementById('grad_y_pos_slider');
@@ -736,7 +735,6 @@
                 gradYPosInput.disabled = true;
             }
 
-            // 加载已保存的自定义RSS源，并应用已删除预设源的黑名单
             const removedPresets = JSON.parse(localStorage.getItem('removed_presets') || '[]');
             const selectElement = document.getElementById('rss_preset');
             Array.from(selectElement.options).forEach(opt => {
@@ -747,7 +745,6 @@
             loadCustomRSSFeeds();
         });
 
-        // 自定义RSS源管理逻辑
         function loadCustomRSSFeeds() {
             const savedFeeds = JSON.parse(localStorage.getItem('custom_rss_feeds') || '[]');
             const select = document.getElementById('rss_preset');
@@ -838,25 +835,25 @@
             if (!rssUrl) { alert("Please enter RSS URL"); return; }
 
             const limit = parseInt(document.getElementById('fetch_count').value) || 10;
-            
+
             const statusEl = document.getElementById('fetch-status');
-            statusEl.textContent = "Fetching...";
+            statusEl.textContent = "Fetching... / 抓取中...";
             statusEl.style.color = "#2980b9";
             try {
-                const response = await fetch('/fetch_news', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ rss_url: rssUrl, limit: limit }) 
+                const response = await fetch('/fetch_news', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rss_url: rssUrl, limit: limit })
                 });
                 const data = await response.json();
                 if (data.error) { statusEl.textContent = "❌ " + data.error; statusEl.style.color = "#e74c3c"; }
                 else {
-                    statusEl.textContent = "✅ Fetched successfully"; statusEl.style.color = "#27ae60";
+                    statusEl.textContent = "✅ Fetched successfully / 抓取成功"; statusEl.style.color = "#27ae60";
                     fetchedNewsList = data.news_list;
                     renderNewsList(data.news_list);
                     document.getElementById('keyword-tags-container').innerHTML = '';
                 }
-            } catch (error) { statusEl.textContent = "❌ Network error"; statusEl.style.color = "#e74c3c"; }
+            } catch (error) { statusEl.textContent = "❌ Network error / 网络错误"; statusEl.style.color = "#e74c3c"; }
         }
 
         function renderNewsList(newsList) {
@@ -895,10 +892,10 @@
                     input.files = dataTransfer.files;
                     input.dispatchEvent(new Event('change', { bubbles: true }));
                     document.getElementById('main_file_name').textContent = "✅ Applied: fetched_news.jpg";
-                    statusEl.textContent = "✅ Image applied";
+                    statusEl.textContent = "✅ Image applied / 图片已应用";
                     triggerAutoUpdate();
-                } else { statusEl.textContent = "⚠️ No image found"; }
-            } catch (error) { statusEl.textContent = "❌ Error fetching image"; }
+                } else { statusEl.textContent = "⚠️ No image found / 未找到图片"; }
+            } catch (error) { statusEl.textContent = "❌ Error fetching image / 抓取图片出错"; }
             renderKeywordTags(news.keywords);
         }
 
@@ -1059,7 +1056,7 @@
             const mainImgInput = form.querySelector('input[name="main_img"]');
             if (mainImgInput.files.length === 0) return;
             updateKeywordsJson();
-            
+
             const formData = new FormData(form);
             const showMidLineCheckbox = document.querySelector('input[name="show_mid_line"]');
             formData.set('show_mid_line', showMidLineCheckbox && showMidLineCheckbox.checked ? 'true' : 'false');
@@ -1076,7 +1073,7 @@
                     document.getElementById('placeholder').style.display = 'none';
                     document.getElementById('action-buttons').style.display = 'flex';
                     addToHistory(currentImageBase64);
-                    
+
                     const ctaUrl = document.getElementById('cta_url_input')?.value.trim();
                     if (ctaUrl) {
                         try {
